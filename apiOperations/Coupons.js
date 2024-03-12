@@ -13,7 +13,7 @@ async function GetAllCoupons() {
     var arr = [];
     let pool = await sql.connect(config);
 
-    let result = await pool.request().query("select * from COUPONS");
+    let result = await pool.request().query("select *,(case when COUPONS_VALIDITY_DATE >= cast(getdate() as date) then 1 else 0 end) as expired from COUPONS");
 
     for (var i = 0; i < result.recordsets[0].length; i++) {
       let result1 = await pool
@@ -34,6 +34,7 @@ async function GetAllCoupons() {
 
       var obj = {
         COUPONS_PKID: result.recordsets[0][i].COUPONS_PKID,
+        expired: result.recordsets[0][i].expired,
         COUPONS_NAME: result.recordsets[0][i].COUPONS_NAME,
         COUPONS_CODE: result.recordsets[0][i].COUPONS_CODE,
         COUPONS_PRICE_OR_PERCENTAGE:
@@ -65,7 +66,7 @@ async function GetAllCouponsForManager(ManagerID) {
     let result = await pool
       .request()
       .query(
-        "select * from COUPONS where COUPONS_ADDED_BY = 'manager' and COUPONS_ADDED_BY_FKID = '" +
+        "select *,(case when COUPONS_VALIDITY_DATE >= cast(getdate() as date) then 1 else 0 end) as expired from COUPONS where COUPONS_ADDED_BY = 'manager' and COUPONS_ADDED_BY_FKID = '" +
           ManagerID +
           "'"
       );
@@ -89,6 +90,7 @@ async function GetAllCouponsForManager(ManagerID) {
 
       var obj = {
         COUPONS_PKID: result.recordsets[0][i].COUPONS_PKID,
+        expired: result.recordsets[0][i].expired,
         COUPONS_NAME: result.recordsets[0][i].COUPONS_NAME,
         COUPONS_CODE: result.recordsets[0][i].COUPONS_CODE,
         COUPONS_PRICE_OR_PERCENTAGE:
@@ -129,6 +131,26 @@ async function AddCoupon(obj) {
     if (result4.recordsets[0].length > 0) {
       res = "0";
     } else {
+      let coupon_validity = "";
+      if (obj.COUPONS_VALIDITY.split(" ")[1] === "Year") {
+        let CouponValididty = await pool
+          .request()
+          .query(
+            `SELECT cast(DATEADD(year, ${
+              obj.COUPONS_VALIDITY.split(" ")[0]
+            }, getdate()) as date) AS Validity`
+          );
+        coupon_validity = CouponValididty.recordsets[0][0].Validity;
+      } else if (obj.COUPONS_VALIDITY.split(" ")[1] === "Month") {
+        let CouponValididty = await pool
+          .request()
+          .query(
+            `SELECT cast(DATEADD(month, ${
+              obj.COUPONS_VALIDITY.split(" ")[0]
+            }, getdate()) as date) AS Validity`
+          );
+        coupon_validity = CouponValididty.recordsets[0][0].Validity;
+      }
       var result = await pool
         .request()
         .input("COUPONS_TYPE_NAME", obj.COUPONS_TYPE_NAME)
@@ -137,7 +159,7 @@ async function AddCoupon(obj) {
         .input("COUPONS_PRICE_OR_PERCENTAGE", obj.COUPONS_PRICE_OR_PERCENTAGE)
         .input("COUPONS_DISCOUNT", obj.COUPONS_DISCOUNT)
         .input("COUPONS_VALIDITY", obj.COUPONS_VALIDITY)
-        .input("COUPONS_VALIDITY_DATE", obj.COUPONS_VALIDITY_DATE)
+        .input("COUPONS_VALIDITY_DATE", coupon_validity)
         .input("COUPONS_ITEM_BASED", obj.isItemBased)
         .input("COUPONS_ADDED_BY", obj.COUPONS_ADDED_BY)
         .input("COUPONS_ADDED_BY_FKID", obj.COUPONS_ADDED_BY_FKID)
@@ -194,6 +216,27 @@ async function UpdateCoupon(id, obj) {
     var res = false;
     var pool = await sql.connect(config);
 
+    let coupon_validity = "";
+      if (obj.COUPONS_VALIDITY.split(" ")[1] === "Year") {
+        let CouponValididty = await pool
+          .request()
+          .query(
+            `SELECT cast(DATEADD(year, ${
+              obj.COUPONS_VALIDITY.split(" ")[0]
+            }, getdate()) as date) AS Validity`
+          );
+        coupon_validity = CouponValididty.recordsets[0][0].Validity;
+      } else if (obj.COUPONS_VALIDITY.split(" ")[1] === "Month") {
+        let CouponValididty = await pool
+          .request()
+          .query(
+            `SELECT cast(DATEADD(month, ${
+              obj.COUPONS_VALIDITY.split(" ")[0]
+            }, getdate()) as date) AS Validity`
+          );
+        coupon_validity = CouponValididty.recordsets[0][0].Validity;
+      }
+
     var result = await pool
       .request()
       .input("COUPONS_TYPE_NAME", obj.COUPONS_TYPE_NAME)
@@ -202,7 +245,7 @@ async function UpdateCoupon(id, obj) {
       .input("COUPONS_PRICE_OR_PERCENTAGE", obj.COUPONS_PRICE_OR_PERCENTAGE)
       .input("COUPONS_DISCOUNT", obj.COUPONS_DISCOUNT)
       .input("COUPONS_VALIDITY", obj.COUPONS_VALIDITY)
-      .input("COUPONS_VALIDITY_DATE", obj.COUPONS_VALIDITY_DATE)
+      .input("COUPONS_VALIDITY_DATE", coupon_validity)
       .input("COUPONS_ITEM_BASED", obj.isItemBased)
       .input("COUPONS_PKID", id)
       .query(
@@ -295,17 +338,17 @@ async function GetAllOutletCoupons(OutletID, CustomerID, ServiceTypeID) {
     let result = await pool.request()
       .query(`select distinct [COUPONS_PKID], [COUPONS_NAME], [COUPONS_CODE], [COUPONS_PRICE_OR_PERCENTAGE], [COUPONS_DISCOUNT], [COUPONS_ITEM_BASED], (case when [COUPONS_ITEM_BASED] = 0 then 'OrderBasedCoupon' else  'ItemBasedCoupon' end) as COUPON_TYPE, (case when [COUPONS_ITEM_BASED] = 0 then 'Order Based Coupon' else  'Item Based Coupon' end) as COUPON_TYPE_DISPLAY
       from COUPONS 
-      join [dbo].[STORE_COUPONS] on [STORE_COUPONS_COUNPON_FKID] = [COUPONS_PKID] and [STORE_COUPONS_STORE_FKID] = '${OutletID}'
+      join [dbo].[STORE_COUPONS] on [STORE_COUPONS_COUNPON_FKID] = [COUPONS_PKID] and [STORE_COUPONS_STORE_FKID] = '${OutletID}' and COUPONS_VALIDITY_DATE >= cast(getdate() as date)
       union all
       select distinct CUSTOMER_COUPON_PKID as [COUPONS_PKID], CUSTOMER_COUPON_NAME as [COUPONS_NAME], CUSTOMER_COUPON_CODE as [COUPONS_CODE], CUSTOMER_COUPON_PERCENT_OR_PRICE as [COUPONS_PRICE_OR_PERCENTAGE], CUSTOMER_COUPON_DISCOUNT as [COUPONS_DISCOUNT], '0' as [COUPONS_ITEM_BASED], 'CustomerBasedCoupon' as COUPON_TYPE, 'Customer Based Coupon' as COUPON_TYPE_DISPLAY
       from [dbo].[CUSTOMER_COUPON] 
       join CUSTOMER_COUPON_CUST_LIST on CUSTOMER_COUPON_CUST_LIST_PRIMARY_FKID = CUSTOMER_COUPON_PKID
-      where CUSTOMER_COUPON_CUST_LIST_FKID = '${CustomerID}' and CUSTOMER_COUPON_NAME != 'New Customer'
+      where CUSTOMER_COUPON_CUST_LIST_FKID = '${CustomerID}' and CUSTOMER_COUPON_NAME != 'New Customer' and CUSTOMER_COUPON_ACTIVE = 1
 	    union all
       select distinct CUSTOMER_COUPON_PKID as [COUPONS_PKID], CUSTOMER_COUPON_NAME as [COUPONS_NAME], CUSTOMER_COUPON_CODE as [COUPONS_CODE], CUSTOMER_COUPON_PERCENT_OR_PRICE as [COUPONS_PRICE_OR_PERCENTAGE], CUSTOMER_COUPON_DISCOUNT as [COUPONS_DISCOUNT], '0' as [COUPONS_ITEM_BASED], 'CustomerBasedCoupon' as COUPON_TYPE, 'Customer Based Coupon' as COUPON_TYPE_DISPLAY
       from [dbo].[CUSTOMER_COUPON] 
       join CUSTOMER_COUPON_CUST_LIST on CUSTOMER_COUPON_CUST_LIST_PRIMARY_FKID = CUSTOMER_COUPON_PKID
-      where CUSTOMER_COUPON_CUST_LIST_FKID = '${CustomerID}' and CUSTOMER_COUPON_NAME = 'New Customer' and (select SERVICE_TYPE_NEW_CUST_COUPON from SERVICE_TYPE where SERVICE_TYPE_PKID = '${ServiceTypeID}') = 1`);
+      where CUSTOMER_COUPON_CUST_LIST_FKID = '${CustomerID}' and CUSTOMER_COUPON_NAME = 'New Customer' and CUSTOMER_COUPON_ACTIVE = 1 and (select SERVICE_TYPE_NEW_CUST_COUPON from SERVICE_TYPE where SERVICE_TYPE_PKID = '${ServiceTypeID}') = 1`);
 
     return result.recordsets[0];
   } catch (error) {

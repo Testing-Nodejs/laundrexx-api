@@ -320,9 +320,12 @@ async function GetAllCustomersWithFilter(obj) {
   try {
     let pool = await sql.connect(config);
 
-    var MyQuery = `select CUSTOMERS.*,[CUSTOMER_TYPE_NAME],[STORE_NAME],[STORE_CODE] from [dbo].[CUSTOMERS]
+    var MyQuery = `select distinct CUSTOMERS.*,[CUSTOMER_TYPE_NAME],[STORE_NAME],[STORE_CODE] from [dbo].[CUSTOMERS]
     join [dbo].[STORES] on [STORE_PKID] = [CUSTOMER_OUTLET_FKID]
-    join [dbo].[CUSTOMER_TYPE] on [CUSTOMER_TYPE_PKID] = [CUSTOMER_TYPE_FKID] where CUSTOMER_PKID is not null `;
+    join [dbo].[CUSTOMER_TYPE] on [CUSTOMER_TYPE_PKID] = [CUSTOMER_TYPE_FKID]
+    join [dbo].[CUSTOMER_COUPON_CUST_LIST] on [CUSTOMER_COUPON_CUST_LIST_FKID] = [CUSTOMER_PKID]
+	  join [dbo].[CUSTOMER_COUPON] on [CUSTOMER_COUPON_PKID] = [CUSTOMER_COUPON_CUST_LIST_PRIMARY_FKID] and CUSTOMER_COUPON_NAME = 'New Customer'
+    where CUSTOMER_PKID is not null `;
 
     if (
       obj.Outlet == "-" &&
@@ -357,9 +360,12 @@ async function GetAllCustomersWithFilterByManager(obj) {
   try {
     let pool = await sql.connect(config);
 
-    var MyQuery = `select CUSTOMERS.*,[CUSTOMER_TYPE_NAME],[STORE_NAME],[STORE_CODE] from [dbo].[CUSTOMERS]
+    var MyQuery = `select  distinct CUSTOMERS.*,[CUSTOMER_TYPE_NAME],[STORE_NAME],[STORE_CODE],STORE_SHORT_CODE,CUSTOMER_COUPON.* from [dbo].[CUSTOMERS]
     join [dbo].[STORES] on [STORE_PKID] = [CUSTOMER_OUTLET_FKID]
-    join [dbo].[CUSTOMER_TYPE] on [CUSTOMER_TYPE_PKID] = [CUSTOMER_TYPE_FKID] where CUSTOMER_PKID is not null `;
+    join [dbo].[USER_OUTLETS] on [USER_OUTLETS_OUTLET_FKID] = [STORE_PKID] and [USER_OUTLETS_USER_FKID] = '${obj.ManagerID}'
+    join [dbo].[CUSTOMER_TYPE] on [CUSTOMER_TYPE_PKID] = [CUSTOMER_TYPE_FKID]
+    join [dbo].[CUSTOMER_COUPON_CUST_LIST] on [CUSTOMER_COUPON_CUST_LIST_FKID] = [CUSTOMER_PKID]
+    join [dbo].[CUSTOMER_COUPON] on [CUSTOMER_COUPON_PKID] = [CUSTOMER_COUPON_CUST_LIST_PRIMARY_FKID] and CUSTOMER_COUPON_NAME = 'New Customer' `;
 
     if (
       obj.Outlet == "-" &&
@@ -381,15 +387,15 @@ async function GetAllCustomersWithFilterByManager(obj) {
     } else {
       if (obj.Outlet == "-") {
       } else {
-        MyQuery += `and CUSTOMER_OUTLET_FKID = '${obj.Outlet}'`;
+        MyQuery += ` and CUSTOMER_OUTLET_FKID = '${obj.Outlet}'`;
       }
       if (obj.Month == "-") {
       } else {
-        MyQuery += `and month(CUSTOMER_CREATED_DATE) = '${obj.Month}'`;
+        MyQuery += ` and month(CUSTOMER_CREATED_DATE) = '${obj.Month}'`;
       }
       if (obj.FromDate == "-") {
       } else {
-        MyQuery += `and (CUSTOMER_CREATED_DATE between '${obj.FromDate}' and '${obj.ToDate}')`;
+        MyQuery += ` and (CUSTOMER_CREATED_DATE between '${obj.FromDate}' and '${obj.ToDate}')`;
       }
       var result4 = await pool.request().query(MyQuery);
       return result4.recordsets[0];
