@@ -37,14 +37,49 @@ async function AddCustomer(obj) {
       .input("CUSTOMER_GST_NUMBER", obj.CUSTOMER_GST_NUMBER)
       .input("CUSTOMER_TYPE_FKID", obj.CUSTOMER_TYPE_FKID)
       .input("CUSTOMER_HOW_HEAR_US", obj.CUSTOMER_HOW_HEAR_US)
-      .input("CUSTOMER_COUPON_NAME", "New Customer")
-      .input("CUSTOMER_COUPON_CODE", GenerateCouponCode(7))
-      .input("CUSTOMER_COUPON_DISCOUNT", "50")
       .query(
-        `insert into CUSTOMERS(CUSTOMER_OUTLET_FKID, CUSTOMER_NAME,CUSTOMER_CONTACT_NUMBER,CUSTOMER_ALT_NUMBER,CUSTOMER_GST_TYPE,CUSTOMER_EMAIL,CUSTOMER_ADDRESS,CUSTOMER_GST_NUMBER,CUSTOMER_TYPE_FKID,CUSTOMER_HOW_HEAR_US,CUSTOMER_COUPON_NAME,CUSTOMER_COUPON_CODE,CUSTOMER_COUPON_DISCOUNT,CUSTOMER_CREATED_DATE) values(@CUSTOMER_OUTLET_FKID, @CUSTOMER_NAME,@CUSTOMER_CONTACT_NUMBER,@CUSTOMER_ALT_NUMBER,@CUSTOMER_GST_TYPE,@CUSTOMER_EMAIL,@CUSTOMER_ADDRESS,@CUSTOMER_GST_NUMBER,@CUSTOMER_TYPE_FKID,@CUSTOMER_HOW_HEAR_US,@CUSTOMER_COUPON_NAME,@CUSTOMER_COUPON_CODE,@CUSTOMER_COUPON_DISCOUNT,getdate())`
+        `insert into CUSTOMERS(CUSTOMER_OUTLET_FKID, CUSTOMER_NAME,CUSTOMER_CONTACT_NUMBER,CUSTOMER_ALT_NUMBER,CUSTOMER_GST_TYPE,CUSTOMER_EMAIL,CUSTOMER_ADDRESS,CUSTOMER_GST_NUMBER,CUSTOMER_TYPE_FKID,CUSTOMER_HOW_HEAR_US,CUSTOMER_CREATED_DATE) values(@CUSTOMER_OUTLET_FKID, @CUSTOMER_NAME,@CUSTOMER_CONTACT_NUMBER,@CUSTOMER_ALT_NUMBER,@CUSTOMER_GST_TYPE,@CUSTOMER_EMAIL,@CUSTOMER_ADDRESS,@CUSTOMER_GST_NUMBER,@CUSTOMER_TYPE_FKID,@CUSTOMER_HOW_HEAR_US,getdate())`
       );
 
     if (result.rowsAffected > 0) {
+      var MaxCust = await pool
+        .request()
+        .query(`select max(CUSTOMER_PKID) as CUSTOMER_PKID from CUSTOMERS`);
+
+      var MainCoupon = await pool
+        .request()
+        .input("CUSTOMER_COUPON_NAME", "New Customer")
+        .input("CUSTOMER_COUPON_CODE", GenerateCouponCode(7))
+        .input("CUSTOMER_COUPON_PERCENT_OR_PRICE", "Percentage")
+        .input("CUSTOMER_COUPON_DISCOUNT", "50")
+        .input("CUSTOMER_COUPON_TYPE", "OneTimeUse")
+        .input("CUSTOMER_COUPON_ACTIVE", "1")
+        .query(
+          `insert into CUSTOMER_COUPON(CUSTOMER_COUPON_NAME, CUSTOMER_COUPON_CODE,CUSTOMER_COUPON_PERCENT_OR_PRICE,CUSTOMER_COUPON_DISCOUNT,CUSTOMER_COUPON_TYPE,CUSTOMER_COUPON_ACTIVE) values(@CUSTOMER_COUPON_NAME, @CUSTOMER_COUPON_CODE,@CUSTOMER_COUPON_PERCENT_OR_PRICE,@CUSTOMER_COUPON_DISCOUNT,@CUSTOMER_COUPON_TYPE,@CUSTOMER_COUPON_ACTIVE)`
+        );
+
+      if (MainCoupon.rowsAffected > 0) {
+        var MaxCoupon = await pool
+          .request()
+          .query(
+            `select max(CUSTOMER_COUPON_PKID) as CUSTOMER_COUPON_PKID from CUSTOMER_COUPON`
+          );
+
+        var CustomerList = await pool
+          .request()
+          .input(
+            "CUSTOMER_COUPON_CUST_LIST_PRIMARY_FKID",
+            MaxCoupon.recordsets[0][0].CUSTOMER_COUPON_PKID
+          )
+          .input(
+            "CUSTOMER_COUPON_CUST_LIST_FKID",
+            MaxCust.recordsets[0][0].CUSTOMER_PKID
+          )
+          .query(
+            `insert into CUSTOMER_COUPON_CUST_LIST(CUSTOMER_COUPON_CUST_LIST_PRIMARY_FKID, CUSTOMER_COUPON_CUST_LIST_FKID) values(@CUSTOMER_COUPON_CUST_LIST_PRIMARY_FKID, @CUSTOMER_COUPON_CUST_LIST_FKID)`
+          );
+      }
+
       res = true;
     } else {
       res = false;
@@ -102,6 +137,22 @@ async function GetAllCustomers() {
     return result.recordsets[0];
   } catch (error) {
     console.log("GetAllCustomers-->", error);
+  }
+}
+
+async function GetNewCustomerCoupon(CustomerID) {
+  try {
+    let pool = await sql.connect(config);
+    var result = await pool
+      .request()
+      .query(`select [dbo].[CUSTOMER_COUPON].*
+      from [dbo].[CUSTOMER_COUPON_CUST_LIST]
+      join [dbo].[CUSTOMER_COUPON] on [CUSTOMER_COUPON_PKID] = [CUSTOMER_COUPON_CUST_LIST_PRIMARY_FKID]
+      where [CUSTOMER_COUPON_CUST_LIST_FKID] = '${CustomerID}' and [CUSTOMER_COUPON_NAME] = 'New Customer'`);
+
+    return result.recordsets[0];
+  } catch (error) {
+    console.log("GetNewCustomerCoupon-->", error);
   }
 }
 
@@ -418,8 +469,8 @@ async function GetAllCustomerCoupons() {
         .request()
         .query(
           "select * from CUSTOMER_COUPON_CUST_LIST join CUSTOMERS on CUSTOMER_PKID = CUSTOMER_COUPON_CUST_LIST_FKID join STORES on STORE_PKID = CUSTOMER_OUTLET_FKID where CUSTOMER_COUPON_CUST_LIST_PRIMARY_FKID = '" +
-          result.recordsets[0][i].CUSTOMER_COUPON_PKID +
-          "'"
+            result.recordsets[0][i].CUSTOMER_COUPON_PKID +
+            "'"
         );
       var CustomerForEdit = [];
       for (var j = 0; j < result1.recordsets[0].length; j++) {
@@ -470,10 +521,10 @@ async function GetAllCustomerCouponsForManager(ManagerID) {
         .request()
         .query(
           "select * from CUSTOMER_COUPON_CUST_LIST join CUSTOMERS on CUSTOMER_PKID = CUSTOMER_COUPON_CUST_LIST_FKID join STORES on STORE_PKID = CUSTOMER_OUTLET_FKID join USER_OUTLETS on USER_OUTLETS_OUTLET_FKID = STORE_PKID where CUSTOMER_COUPON_CUST_LIST_PRIMARY_FKID = '" +
-          result.recordsets[0][i].CUSTOMER_COUPON_PKID +
-          "' and USER_OUTLETS_USER_FKID = '" +
-          ManagerID +
-          "'"
+            result.recordsets[0][i].CUSTOMER_COUPON_PKID +
+            "' and USER_OUTLETS_USER_FKID = '" +
+            ManagerID +
+            "'"
         );
       var CustomerForEdit = [];
       for (var j = 0; j < result1.recordsets[0].length; j++) {
@@ -646,6 +697,7 @@ module.exports = {
   GetAllCustomerType: GetAllCustomerType,
   AddCustomer: AddCustomer,
   UpdateCustomer: UpdateCustomer,
+  GetNewCustomerCoupon: GetNewCustomerCoupon,
   GetAllCustomersForCoupons: GetAllCustomersForCoupons,
   GetAllCustomersForCouponsForManager: GetAllCustomersForCouponsForManager,
   GetAllCustomers: GetAllCustomers,

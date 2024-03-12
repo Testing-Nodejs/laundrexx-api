@@ -8,18 +8,18 @@ const sql = require("mssql");
 
 const config = {
   // Live Credentials
-  connectionLimit: 100,
-  user: "laundrexx_2024",
-  password: "yY!477e9a",
-  server: "103.160.107.235",
-  database: "klwkthvp_laundrexx_2024",
+  // connectionLimit: 100,
+  // user: "laundrexx_2024",
+  // password: "yY!477e9a",
+  // server: "103.160.107.235",
+  // database: "klwkthvp_laundrexx_2024",
 
     // Local Credentials    
-  // connectionLimit: 100,
-  // user: "sa",
-  // password: "vss",
-  // server: "192.168.1.5",
-  // database: "Laundrexx",
+  connectionLimit: 100,
+  user: "sa",
+  password: "vss",
+  server: "localhost",
+  database: "Laundrexx",
 
   pool: {
     max: 10,

@@ -1002,6 +1002,12 @@ router.get("/Customers", async (req, res) => {
   });
 });
 
+router.get("/GetNewCustomerCoupon/:CustomerID", async (req, res) => {
+  await Customers.GetNewCustomerCoupon(req.params.CustomerID).then((data) => {
+    res.json(data);
+  });
+});
+
 router.get("/GetAllCustomersForManager/:ManagerID", async (req, res) => {
   await Customers.GetAllCustomersForManager(req.params.ManagerID).then(
     (data) => {
@@ -1384,10 +1390,11 @@ router.get(
   }
 );
 
-router.get("/CouponByOutlet/:OutletID/:CustomerID", async (req, res) => {
+router.get("/CouponByOutlet/:OutletID/:CustomerID/:ServiceTypeID", async (req, res) => {
   await Coupon.GetAllOutletCoupons(
     req.params.OutletID,
-    req.params.CustomerID
+    req.params.CustomerID,
+    req.params.ServiceTypeID
   ).then((data) => {
     res.json(data);
   });
@@ -1912,7 +1919,9 @@ router.get("/OutletConfirmIntake/:DcPkid", async (req, res) => {
 });
 
 router.get("/OutletConfirmIntakeWithoutFactoryDC/:DcPkid", async (req, res) => {
-  await OutletIntake.OutletConfirmIntakeWithoutFactoryDC(req.params.DcPkid).then((data) => {
+  await OutletIntake.OutletConfirmIntakeWithoutFactoryDC(
+    req.params.DcPkid
+  ).then((data) => {
     res.json(data);
   });
 });
@@ -1924,9 +1933,11 @@ router.get("/OutletAllInventory/:OutletID", async (req, res) => {
 });
 
 router.get("/OutletAllInventoryForAdmin/:OutletID", async (req, res) => {
-  await OutletIntake.OutletAllInventoryForAdmin(req.params.OutletID).then((data) => {
-    res.json(data);
-  });
+  await OutletIntake.OutletAllInventoryForAdmin(req.params.OutletID).then(
+    (data) => {
+      res.json(data);
+    }
+  );
 });
 
 router.route("/OutletAllInventoryFromOrderNumber").post(async (req, res) => {

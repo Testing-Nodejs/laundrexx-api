@@ -288,7 +288,7 @@ async function DeleteCoupons(id) {
   }
 }
 
-async function GetAllOutletCoupons(OutletID, CustomerID) {
+async function GetAllOutletCoupons(OutletID, CustomerID, ServiceTypeID) {
   try {
     let pool = await sql.connect(config);
 
@@ -300,7 +300,12 @@ async function GetAllOutletCoupons(OutletID, CustomerID) {
       select distinct CUSTOMER_COUPON_PKID as [COUPONS_PKID], CUSTOMER_COUPON_NAME as [COUPONS_NAME], CUSTOMER_COUPON_CODE as [COUPONS_CODE], CUSTOMER_COUPON_PERCENT_OR_PRICE as [COUPONS_PRICE_OR_PERCENTAGE], CUSTOMER_COUPON_DISCOUNT as [COUPONS_DISCOUNT], '0' as [COUPONS_ITEM_BASED], 'CustomerBasedCoupon' as COUPON_TYPE, 'Customer Based Coupon' as COUPON_TYPE_DISPLAY
       from [dbo].[CUSTOMER_COUPON] 
       join CUSTOMER_COUPON_CUST_LIST on CUSTOMER_COUPON_CUST_LIST_PRIMARY_FKID = CUSTOMER_COUPON_PKID
-      where CUSTOMER_COUPON_CUST_LIST_FKID = '${CustomerID}'`);
+      where CUSTOMER_COUPON_CUST_LIST_FKID = '${CustomerID}' and CUSTOMER_COUPON_NAME != 'New Customer'
+	    union all
+      select distinct CUSTOMER_COUPON_PKID as [COUPONS_PKID], CUSTOMER_COUPON_NAME as [COUPONS_NAME], CUSTOMER_COUPON_CODE as [COUPONS_CODE], CUSTOMER_COUPON_PERCENT_OR_PRICE as [COUPONS_PRICE_OR_PERCENTAGE], CUSTOMER_COUPON_DISCOUNT as [COUPONS_DISCOUNT], '0' as [COUPONS_ITEM_BASED], 'CustomerBasedCoupon' as COUPON_TYPE, 'Customer Based Coupon' as COUPON_TYPE_DISPLAY
+      from [dbo].[CUSTOMER_COUPON] 
+      join CUSTOMER_COUPON_CUST_LIST on CUSTOMER_COUPON_CUST_LIST_PRIMARY_FKID = CUSTOMER_COUPON_PKID
+      where CUSTOMER_COUPON_CUST_LIST_FKID = '${CustomerID}' and CUSTOMER_COUPON_NAME = 'New Customer' and (select SERVICE_TYPE_NEW_CUST_COUPON from SERVICE_TYPE where SERVICE_TYPE_PKID = '${ServiceTypeID}') = 1`);
 
     return result.recordsets[0];
   } catch (error) {
