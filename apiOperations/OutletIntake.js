@@ -29,7 +29,9 @@ async function GetDCFromFactory(OutletID) {
 
     var result1 = await pool.request().query(
       `select FACTORY_STAFF_NAME,[FACTORY_TO_OUTLET_DC_PKID],[FACTORY_TO_OUTLET_DC_NUMBER], [FACTORY_TO_OUTLET_DC_DATE],[FACTORY_TO_OUTLET_DC_TIME], [FACTORY_NAME], [FACTORY_CODE],
-          [STORE_CODE], [STORE_NAME],[STORE_ADDRESS],[STORE_CITY],[ROUTE_NAME], [ROUTE_CODE], [FACTORY_TO_OUTLET_DC_ORDER_COUNT], [FACTORY_TO_OUTLET_DC_ITEMS_COUNT], [FACTORY_TO_OUTLET_DC_TOTAL_BAGS], [FACTORY_TO_OUTLET_DC_STATUS]
+          [STORE_CODE], [STORE_NAME],[STORE_ADDRESS],[STORE_CITY],[ROUTE_NAME], [ROUTE_CODE], [FACTORY_TO_OUTLET_DC_ORDER_COUNT], [FACTORY_TO_OUTLET_DC_ITEMS_COUNT], [FACTORY_TO_OUTLET_DC_TOTAL_BAGS], [FACTORY_TO_OUTLET_DC_STATUS],
+          (select sum([ORDER_ITEM_QUANTITY]) from [dbo].[ORDER_ITEMS] join [dbo].[ORDERS] on [ORDER_PKID] = [ORDER_ITEM_ORDER_FKID] join FACTORY_TO_OUTLET_DC_ITEMS on FACTORY_TO_OUTLET_DC_ITEMS_ORDER_FKID = [ORDER_PKID] where FACTORY_TO_OUTLET_DC_ITEMS_PRIMARY_FKID = FACTORY_TO_OUTLET_DC_PKID ) as TotalQuantity,
+		  (select sum([ORDER_ITEM_COUNT]) from [dbo].[ORDER_ITEMS] join [dbo].[ORDERS] on [ORDER_PKID] = [ORDER_ITEM_ORDER_FKID] join FACTORY_TO_OUTLET_DC_ITEMS on FACTORY_TO_OUTLET_DC_ITEMS_ORDER_FKID = [ORDER_PKID] where FACTORY_TO_OUTLET_DC_ITEMS_PRIMARY_FKID = FACTORY_TO_OUTLET_DC_PKID ) as TotalCount
           from [dbo].[FACTORY_TO_OUTLET_DC]
           join [dbo].[FACTORY] on [FACTORY_PKID] = [FACTORY_TO_OUTLET_DC_FACTORY_FKID] 
           join [dbo].[FACTORY_STAFF] on [FACTORY_STAFF_PKID] = [FACTORY_TO_OUTLET_DC_STAFF_FKID] 
@@ -40,7 +42,9 @@ async function GetDCFromFactory(OutletID) {
 
     for (var i = 0; i < result1.recordsets[0].length; i++) {
       var DCInnerItems = await pool.request()
-        .query(`select [ORDER_PKID], [ORDER_DATE],[ORDER_ORDER_NUMBER], [ORDER_INVOICE_NUMBER],[ORDER_DUE_DATE],[ORDER_GRAND_TOTAL_AMOUNT],[ORDER_QR],ORDER_ITEMS, FACTORY_TO_OUTLET_DC_ITEMS_BAGS, 0 As ReceivedStatus
+        .query(`select [ORDER_PKID], [ORDER_DATE],[ORDER_ORDER_NUMBER], [ORDER_INVOICE_NUMBER],[ORDER_DUE_DATE],[ORDER_GRAND_TOTAL_AMOUNT],[ORDER_QR],ORDER_ITEMS, FACTORY_TO_OUTLET_DC_ITEMS_BAGS, 0 As ReceivedStatus,
+        (select sum(ORDER_ITEM_QUANTITY) from ORDER_ITEMS where ORDER_ITEM_ORDER_FKID = [ORDER_PKID]) as TotalQuantity,
+(select sum(ORDER_ITEM_COUNT) from ORDER_ITEMS where ORDER_ITEM_ORDER_FKID = [ORDER_PKID]) as TotalCount
           from [dbo].[FACTORY_TO_OUTLET_DC_ITEMS]
           join [dbo].[ORDERS] on [ORDER_PKID] = [FACTORY_TO_OUTLET_DC_ITEMS_ORDER_FKID]
           where [FACTORY_TO_OUTLET_DC_ITEMS_PRIMARY_FKID] = '${result1.recordsets[0][i].FACTORY_TO_OUTLET_DC_PKID}'`);
@@ -70,6 +74,8 @@ async function GetDCFromFactory(OutletID) {
           result1.recordsets[0][i].FACTORY_TO_OUTLET_DC_TOTAL_BAGS,
         FACTORY_TO_OUTLET_DC_STATUS:
           result1.recordsets[0][i].FACTORY_TO_OUTLET_DC_STATUS,
+        TotalQuantity: result1.recordsets[0][i].TotalQuantity,
+        TotalCount: result1.recordsets[0][i].TotalCount,
         DCInnerItems: DCInnerItems.recordsets[0],
       };
       arr.push(obj);
@@ -88,7 +94,9 @@ async function GetDCFromFactoryWithFilter(obj) {
     let pool = await sql.connect(config);
 
     var MyQuery = `select FACTORY_STAFF_NAME,[FACTORY_TO_OUTLET_DC_PKID],[FACTORY_TO_OUTLET_DC_NUMBER], [FACTORY_TO_OUTLET_DC_DATE],[FACTORY_TO_OUTLET_DC_TIME], [FACTORY_NAME], [FACTORY_CODE],
-      [STORE_CODE], [STORE_NAME],[STORE_ADDRESS],[STORE_CITY],[ROUTE_NAME], [ROUTE_CODE], [STORE_STAFF_NAME], [FACTORY_TO_OUTLET_DC_ORDER_COUNT], [FACTORY_TO_OUTLET_DC_ITEMS_COUNT], [FACTORY_TO_OUTLET_DC_TOTAL_BAGS], [FACTORY_TO_OUTLET_DC_STATUS]
+      [STORE_CODE], [STORE_NAME],[STORE_ADDRESS],[STORE_CITY],[ROUTE_NAME], [ROUTE_CODE], [STORE_STAFF_NAME], [FACTORY_TO_OUTLET_DC_ORDER_COUNT], [FACTORY_TO_OUTLET_DC_ITEMS_COUNT], [FACTORY_TO_OUTLET_DC_TOTAL_BAGS], [FACTORY_TO_OUTLET_DC_STATUS],
+      (select sum([ORDER_ITEM_QUANTITY]) from [dbo].[ORDER_ITEMS] join [dbo].[ORDERS] on [ORDER_PKID] = [ORDER_ITEM_ORDER_FKID] join FACTORY_TO_OUTLET_DC_ITEMS on FACTORY_TO_OUTLET_DC_ITEMS_ORDER_FKID = [ORDER_PKID] where FACTORY_TO_OUTLET_DC_ITEMS_PRIMARY_FKID = FACTORY_TO_OUTLET_DC_PKID ) as TotalQuantity,
+		  (select sum([ORDER_ITEM_COUNT]) from [dbo].[ORDER_ITEMS] join [dbo].[ORDERS] on [ORDER_PKID] = [ORDER_ITEM_ORDER_FKID] join FACTORY_TO_OUTLET_DC_ITEMS on FACTORY_TO_OUTLET_DC_ITEMS_ORDER_FKID = [ORDER_PKID] where FACTORY_TO_OUTLET_DC_ITEMS_PRIMARY_FKID = FACTORY_TO_OUTLET_DC_PKID ) as TotalCount
       from [dbo].[FACTORY_TO_OUTLET_DC]
       join [dbo].[FACTORY] on [FACTORY_PKID] = [FACTORY_TO_OUTLET_DC_FACTORY_FKID] 
       join [dbo].[FACTORY_STAFF] on [FACTORY_STAFF_PKID] = [FACTORY_TO_OUTLET_DC_STAFF_FKID] 
@@ -168,46 +176,48 @@ async function OutletConfirmIntake(DCID) {
          where [FACTORY_TO_OUTLET_DC_ITEMS_PRIMARY_FKID] = '${result1.recordsets[0][0].FACTORY_TO_OUTLET_DC_OUTLET_FKID}'`
       );
 
-      for (var z = 0; z < CustomerDetails.recordsets.length; z++) {
-        var DeliveryCode = await pool
-          .request()
-          .query(
-            `SELECT LEFT(CAST(RAND()*1000000000+999999 AS INT),6) as DeliveryCode`
-          );
+      if (CustomerDetails.recordsets[0].length > 0) {
+        for (var z = 0; z < CustomerDetails.recordsets.length; z++) {
+          var DeliveryCode = await pool
+            .request()
+            .query(
+              `SELECT LEFT(CAST(RAND()*1000000000+999999 AS INT),6) as DeliveryCode`
+            );
 
-        var UpdateCustomerDetails = await pool
-          .request()
-          .query(
-            `update CUSTOMERS set CUSTOMER_DELIVERY_CODE = '${DeliveryCode.recordsets[0][0].DeliveryCode}' where CUSTOMER_PKID = CUSTOMER_PKID = '${CustomerDetails.recordsets[0][z].CUSTOMER_PKID}'`
-          );
+          var UpdateCustomerDetails = await pool
+            .request()
+            .query(
+              `update CUSTOMERS set CUSTOMER_DELIVERY_CODE = '${DeliveryCode.recordsets[0][0].DeliveryCode}' where CUSTOMER_PKID = CUSTOMER_PKID = '${CustomerDetails.recordsets[0][z].CUSTOMER_PKID}'`
+            );
 
-        var mailOptions = {
-          from: process.env.EMAIL,
-          to: CustomerDetails.recordsets[0][z].CUSTOMER_EMAIL,
-          subject: "Your Order Is Ready For Pickup!",
-          html: `<html><head>
-                <style>
-         
-          </style></head>
-          <div style="font-family: Helvetica,Arial,sans-serif;min-width:1000px;overflow:auto;line-height:2"><div style="margin:50px auto;width:70%;padding:20px 0">
-                          <div style="border-bottom:1px solid #eee">
-                            <a href="https://laundrexx.com/" style="font-size:1.4em;color: #00466a;text-decoration:none;font-weight:600">Laundrexx Fabric Care India Pvt Ltd</a>
+          var mailOptions = {
+            from: process.env.EMAIL,
+            to: CustomerDetails.recordsets[0][z].CUSTOMER_EMAIL,
+            subject: "Your Order Is Ready For Pickup!",
+            html: `<html><head>
+                  <style>
+           
+            </style></head>
+            <div style="font-family: Helvetica,Arial,sans-serif;min-width:1000px;overflow:auto;line-height:2"><div style="margin:50px auto;width:70%;padding:20px 0">
+                            <div style="border-bottom:1px solid #eee">
+                              <a href="https://laundrexx.com/" style="font-size:1.4em;color: #00466a;text-decoration:none;font-weight:600">Laundrexx Fabric Care India Pvt Ltd</a>
+                            </div>
+                            <p style="font-size: 16px;color: black;font-weight: 600;">Dear ${CustomerDetails.recordsets[0][z].CUSTOMER_NAME},</p>
+                            <p style="font-size: 14px;color: black;">Your order <b>( ${CustomerDetails.recordsets[0][z].ORDER_ORDER_NUMBER} )</b> is ready for pickup.</p>
+                            <p style="font-size: 14px;color: black;">Your order amount is <b>Rs.${CustomerDetails.recordsets[0][z].ORDER_FINAL_ORDER_AMOUNT}</b>.</p>
+                            <p style="font-size: 14px;color: black;">Please present your pickup code <b>${DeliveryCode.recordsets[0][0].DeliveryCode}</b> during collection. Thank you -Laundrexx</p>
                           </div>
-                          <p style="font-size: 16px;color: black;font-weight: 600;">Dear ${CustomerDetails.recordsets[0][z].CUSTOMER_NAME},</p>
-                          <p style="font-size: 14px;color: black;">Your order <b>( ${CustomerDetails.recordsets[0][z].ORDER_ORDER_NUMBER} )</b> is ready for pickup.</p>
-                          <p style="font-size: 14px;color: black;">Your order amount is <b>Rs.${CustomerDetails.recordsets[0][z].ORDER_FINAL_ORDER_AMOUNT}</b>.</p>
-                          <p style="font-size: 14px;color: black;">Please present your pickup code <b>${DeliveryCode.recordsets[0][0].DeliveryCode}</b> during collection. Thank you -Laundrexx</p>
-                        </div>
-                        </html>`,
-        };
+                          </html>`,
+          };
 
-        transporter.sendMail(mailOptions, function (error, info) {
-          if (error) {
-            console.log(error);
-          } else {
-            console.log("Email sent: " + info.response);
-          }
-        });
+          transporter.sendMail(mailOptions, function (error, info) {
+            if (error) {
+              console.log(error);
+            } else {
+              console.log("Email sent: " + info.response);
+            }
+          });
+        }
       }
       return true;
     } else {
@@ -341,7 +351,7 @@ async function OutletCurrentInventoryFilter(obj) {
     join [dbo].[CUSTOMERS] on [CUSTOMER_PKID] = [ORDER_CUSTOMER_FKID]
     join [dbo].[FACTORY] on [FACTORY_PKID] = [STORE_INVENTORY_FACTORY_FKID]
     left join [dbo].[FACTORY_TO_OUTLET_DC] on [FACTORY_TO_OUTLET_DC_PKID] = [STORE_INVENTORY_DC_FKID]
-    where [STORE_INVENTORY_STORE_FKID] = '${obj.Outlet} and STORE_INVENTORY_STATUS = 1 ' 
+    where [STORE_INVENTORY_STORE_FKID] = '${obj.Outlet}' and STORE_INVENTORY_STATUS = 1 
     `;
     if (
       obj.Factory == "-" &&
@@ -858,7 +868,8 @@ async function ViewOutletDCForIntake(OutletID) {
     var result1 = await pool.request().query(
       `select FACTORY_DC_PKID,FACTORY_DC_NUMBER, FACTORY_DC_DATE, [FACTORY_NAME], [FACTORY_CODE],
       [STORE_CODE], [STORE_NAME],[STORE_ADDRESS],[STORE_CITY],[ROUTE_NAME], [ROUTE_CODE], FACTORY_DC_ORDER_COUNT, FACTORY_DC_TOTAL_BAGS, FACTORY_DC_STATUS,
-      (select sum(ORDER_ITEMS) from [dbo].[FACTORY_DC_ITEMS] join [dbo].[ORDERS] on [ORDER_PKID] = [FACTORY_DC_ITEMS_ORDER_FKID] where [FACTORY_DC_ITEMS_DC_FKID] = FACTORY_DC_PKID) as TotalQuantity
+      (select sum(ORDER_ITEM_QUANTITY) from [dbo].[FACTORY_DC_ITEMS] join [dbo].[ORDERS] on [ORDER_PKID] = [FACTORY_DC_ITEMS_ORDER_FKID] join [dbo].[ORDER_ITEMS] on  ORDER_ITEM_ORDER_FKID = [ORDER_PKID] where [FACTORY_DC_ITEMS_DC_FKID] = FACTORY_DC_PKID) as TotalQuantity,
+      (select sum(ORDER_ITEM_COUNT) from [dbo].[FACTORY_DC_ITEMS] join [dbo].[ORDERS] on [ORDER_PKID] = [FACTORY_DC_ITEMS_ORDER_FKID] join [dbo].[ORDER_ITEMS] on  ORDER_ITEM_ORDER_FKID = [ORDER_PKID] where [FACTORY_DC_ITEMS_DC_FKID] = FACTORY_DC_PKID) as TotalCount
       from [dbo].[FACTORY_DC]
       join [dbo].[FACTORY] on [FACTORY_PKID] = [FACTORY_DC_FACCTORY_FKID] 
       join [dbo].[STORES] on [STORE_PKID] = [FACTORY_DC_OUTLET_FKID]
@@ -868,7 +879,9 @@ async function ViewOutletDCForIntake(OutletID) {
 
     for (var i = 0; i < result1.recordsets[0].length; i++) {
       var DCInnerItems = await pool.request()
-        .query(`select [ORDER_PKID], [ORDER_DATE],[ORDER_ORDER_NUMBER], [ORDER_INVOICE_NUMBER],[ORDER_DUE_DATE],[ORDER_GRAND_TOTAL_AMOUNT],[ORDER_QR],ORDER_ITEMS
+        .query(`select [ORDER_PKID], [ORDER_DATE],[ORDER_ORDER_NUMBER], [ORDER_INVOICE_NUMBER],[ORDER_DUE_DATE],[ORDER_GRAND_TOTAL_AMOUNT],[ORDER_QR],ORDER_ITEMS,
+        (select sum(ORDER_ITEM_QUANTITY) from ORDER_ITEMS where ORDER_ITEM_ORDER_FKID = [ORDER_PKID]) as TotalQuantity,
+(select sum(ORDER_ITEM_COUNT) from ORDER_ITEMS where ORDER_ITEM_ORDER_FKID = [ORDER_PKID]) as TotalCount
         from [dbo].[FACTORY_DC_ITEMS]
         join [dbo].[ORDERS] on [ORDER_PKID] = FACTORY_DC_ITEMS_ORDER_FKID
         where FACTORY_DC_ITEMS_DC_FKID  = '${result1.recordsets[0][i].FACTORY_DC_PKID}'`);
@@ -889,6 +902,7 @@ async function ViewOutletDCForIntake(OutletID) {
         FACTORY_DC_TOTAL_BAGS: result1.recordsets[0][i].FACTORY_DC_TOTAL_BAGS,
         FACTORY_DC_STATUS: result1.recordsets[0][i].FACTORY_DC_STATUS,
         TotalQuantity: result1.recordsets[0][i].TotalQuantity,
+        TotalCount: result1.recordsets[0][i].TotalCount,
         DCInnerItems: DCInnerItems.recordsets[0],
       };
       arr.push(obj);
@@ -907,7 +921,8 @@ async function ViewOutletDCForIntakeFilter(obj) {
 
     var MyQuery = `select FACTORY_DC_PKID,FACTORY_DC_NUMBER, FACTORY_DC_DATE, [FACTORY_NAME], [FACTORY_CODE],
     [STORE_CODE], [STORE_NAME],[STORE_ADDRESS],[STORE_CITY],[ROUTE_NAME], [ROUTE_CODE], FACTORY_DC_ORDER_COUNT, FACTORY_DC_TOTAL_BAGS, FACTORY_DC_STATUS,
-    (select sum(ORDER_ITEMS) from [dbo].[FACTORY_DC_ITEMS] join [dbo].[ORDERS] on [ORDER_PKID] = [FACTORY_DC_ITEMS_ORDER_FKID] where [FACTORY_DC_ITEMS_DC_FKID] = FACTORY_DC_PKID) as TotalQuantity
+    (select sum(ORDER_ITEM_QUANTITY) from [dbo].[FACTORY_DC_ITEMS] join [dbo].[ORDERS] on [ORDER_PKID] = [FACTORY_DC_ITEMS_ORDER_FKID] join [dbo].[ORDER_ITEMS] on  ORDER_ITEM_ORDER_FKID = [ORDER_PKID] where [FACTORY_DC_ITEMS_DC_FKID] = FACTORY_DC_PKID) as TotalQuantity,
+      (select sum(ORDER_ITEM_COUNT) from [dbo].[FACTORY_DC_ITEMS] join [dbo].[ORDERS] on [ORDER_PKID] = [FACTORY_DC_ITEMS_ORDER_FKID] join [dbo].[ORDER_ITEMS] on  ORDER_ITEM_ORDER_FKID = [ORDER_PKID] where [FACTORY_DC_ITEMS_DC_FKID] = FACTORY_DC_PKID) as TotalCount
     from [dbo].[FACTORY_DC]
     join [dbo].[FACTORY] on [FACTORY_PKID] = [FACTORY_DC_FACCTORY_FKID] 
     join [dbo].[STORES] on [STORE_PKID] = [FACTORY_DC_OUTLET_FKID]
@@ -924,7 +939,9 @@ async function ViewOutletDCForIntakeFilter(obj) {
       var result3 = await pool.request().query(MyQuery);
       for (var i = 0; i < result3.recordsets[0].length; i++) {
         var DCInnerItems = await pool.request()
-          .query(`select [ORDER_PKID], [ORDER_DATE],[ORDER_ORDER_NUMBER], [ORDER_INVOICE_NUMBER],[ORDER_DUE_DATE],[ORDER_GRAND_TOTAL_AMOUNT],[ORDER_QR],ORDER_ITEMS
+          .query(`select [ORDER_PKID], [ORDER_DATE],[ORDER_ORDER_NUMBER], [ORDER_INVOICE_NUMBER],[ORDER_DUE_DATE],[ORDER_GRAND_TOTAL_AMOUNT],[ORDER_QR],ORDER_ITEMS,
+          (select sum(ORDER_ITEM_QUANTITY) from ORDER_ITEMS where ORDER_ITEM_ORDER_FKID = [ORDER_PKID]) as TotalQuantity,
+(select sum(ORDER_ITEM_COUNT) from ORDER_ITEMS where ORDER_ITEM_ORDER_FKID = [ORDER_PKID]) as TotalCount
           from [dbo].[FACTORY_DC_ITEMS]
           join [dbo].[ORDERS] on [ORDER_PKID] = FACTORY_DC_ITEMS_ORDER_FKID
           where FACTORY_DC_ITEMS_DC_FKID  = '${result3.recordsets[0][i].FACTORY_DC_PKID}'`);
@@ -946,6 +963,7 @@ async function ViewOutletDCForIntakeFilter(obj) {
           FACTORY_DC_TOTAL_BAGS: result3.recordsets[0][i].FACTORY_DC_TOTAL_BAGS,
           FACTORY_DC_STATUS: result3.recordsets[0][i].FACTORY_DC_STATUS,
           TotalQuantity: result3.recordsets[0][i].TotalQuantity,
+          TotalCount: result3.recordsets[0][i].TotalCount,
           DCInnerItems: DCInnerItems.recordsets[0],
         };
         arr.push(obj);
@@ -990,6 +1008,7 @@ async function ViewOutletDCForIntakeFilter(obj) {
           FACTORY_DC_TOTAL_BAGS: result4.recordsets[0][i].FACTORY_DC_TOTAL_BAGS,
           FACTORY_DC_STATUS: result4.recordsets[0][i].FACTORY_DC_STATUS,
           TotalQuantity: result4.recordsets[0][i].TotalQuantity,
+          TotalCount: result3.recordsets[0][i].TotalCount,
           DCInnerItems: DCInnerItems.recordsets[0],
         };
         arr.push(obj);
