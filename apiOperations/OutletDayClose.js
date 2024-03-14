@@ -265,8 +265,9 @@ async function GetOutletToFactoryDC(OutletID) {
       from [dbo].[FACTORY_DC]
       join [dbo].[FACTORY] on [FACTORY_PKID] = [FACTORY_DC_FACCTORY_FKID]
       join [dbo].[STORE_STAFF] on [STORE_STAFF_PKID] = [FACTORY_DC_STAFF_FKID]
-      where FACTORY_DC_OUTLET_FKID = '${OutletID}'`
+      where FACTORY_DC_OUTLET_FKID = '${OutletID}' and (FACTORY_DC_DATE = cast(getdate() as date) or FACTORY_DC_DATE = cast((getdate() + 1) as date))`
     );
+    console.log(result1.recordsets[0])
     return result1.recordsets[0];
   } catch (error) {
     console.log("GetOutletToFactoryDC-->", error);
@@ -296,7 +297,7 @@ async function GetOutletToFactoryDCFilter(obj) {
 
     let pool = await sql.connect(config);
 
-    var MyQuery = `select [FACTORY_DC_QR],[FACTORY_DC_PKID], [FACTORY_DC_DATE], [FACTORY_DC_OUTLET_FKID], [FACTORY_DC_STAFF_FKID], [STORE_STAFF_NAME], [FACTORY_DC_NUMBER], [FACTORY_DC_FACCTORY_FKID], [FACTORY_ID], [FACTORY_CODE], [FACTORY_NAME], [FACTORY_DC_ORDER_COUNT], [FACTORY_DC_TOTAL_BAGS], [FACTORY_DC_STATUS], (select sum(cast(ORDER_ITEMS as int)) from FACTORY_DC_ITEMS join ORDERS on ORDER_PKID = FACTORY_DC_ITEMS_ORDER_FKID where FACTORY_DC_ITEMS_DC_FKID = FACTORY_DC_PKID) as TotalQuantity
+    var MyQuery = `select [FACTORY_DC_QR],[FACTORY_DC_PKID], [FACTORY_DC_DATE], [FACTORY_DC_OUTLET_FKID], [FACTORY_DC_STAFF_FKID], [STORE_STAFF_NAME], [FACTORY_DC_NUMBER], [FACTORY_DC_FACCTORY_FKID], [FACTORY_ID], [FACTORY_CODE], [FACTORY_NAME], [FACTORY_DC_ORDER_COUNT], [FACTORY_DC_TOTAL_BAGS], [FACTORY_DC_STATUS], (select sum(cast(ORDER_ITEMS as int)) from FACTORY_DC_ITEMS join ORDERS on ORDER_PKID = FACTORY_DC_ITEMS_ORDER_FKID where FACTORY_DC_ITEMS_DC_FKID = FACTORY_DC_PKID) as TotalQuantity, (select sum(cast(ORDER_ITEM_COUNT as int)) from FACTORY_DC_ITEMS join ORDERS on ORDER_PKID = FACTORY_DC_ITEMS_ORDER_FKID join ORDER_ITEMS on ORDER_ITEM_ORDER_FKID = ORDER_PKID where FACTORY_DC_ITEMS_DC_FKID = FACTORY_DC_PKID) as TotalCount
     from [dbo].[FACTORY_DC]
     join [dbo].[FACTORY] on [FACTORY_PKID] = [FACTORY_DC_FACCTORY_FKID]
     join [dbo].[STORE_STAFF] on [STORE_STAFF_PKID] = [FACTORY_DC_STAFF_FKID]
@@ -348,7 +349,17 @@ async function GetOutletToFactryDCItems(Pkid) {
       (select sum(cast([ORDER_ITEM_COUNT] as int)) from [dbo].[ORDER_ITEMS] where [ORDER_ITEM_ORDER_FKID] = [ORDER_PKID]) TotalCount,
       STORES.*,FACTORY_NAME,FACTORY_CODE,ROUTE_NAME,ROUTE_CODE,
       [CUSTOMER_PKID], [CUSTOMER_NAME], [CUSTOMER_CONTACT_NUMBER], [CUSTOMER_GST_TYPE], [CUSTOMER_EMAIL], [CUSTOMER_ADDRESS],[CUSTOMER_TYPE_NAME],CUSTOMER_GST_NUMBER,
-      COUPONS.*, cast((case when DATEDIFF(day, ORDER_DATE, getdate()) > 3 then 0 else 1 end) as bit) as IsEditable
+      case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then CUSTOMER_COUPON.CUSTOMER_COUPON_PKID else COUPONS.COUPONS_PKID end as COUPONS_PKID, 
+	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then CUSTOMER_COUPON.CUSTOMER_COUPON_NAME else COUPONS.COUPONS_NAME end as COUPONS_NAME, 
+	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then 'CustomerBasedCoupon' else (case when COUPONS.COUPONS_ITEM_BASED = 0 then 'OrderBasedCoupon' else  'ItemBasedCoupon' end) end as COUPON_TYPE, 
+	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then CUSTOMER_COUPON.CUSTOMER_COUPON_TYPE else COUPONS.COUPONS_VALIDITY end as COUPONS_VALIDITY, 
+	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then '-' else cast(COUPONS.COUPONS_VALIDITY_DATE as nvarchar(max)) end as COUPONS_VALIDITY_DATE, 
+	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then CUSTOMER_COUPON.CUSTOMER_COUPON_CODE else COUPONS.COUPONS_CODE end as COUPONS_CODE, 
+	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then CUSTOMER_COUPON.CUSTOMER_COUPON_PERCENT_OR_PRICE else COUPONS.COUPONS_PRICE_OR_PERCENTAGE end as COUPONS_PRICE_OR_PERCENTAGE, 
+	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then CUSTOMER_COUPON.CUSTOMER_COUPON_DISCOUNT else COUPONS.COUPONS_DISCOUNT end as COUPONS_DISCOUNT, 
+	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then CUSTOMER_COUPON.CUSTOMER_COUPON_ACTIVE else COUPONS.COUPONS_ACTIVE end as COUPONS_ACTIVE, 
+	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then 0 else COUPONS.COUPONS_ITEM_BASED end as COUPONS_ITEM_BASED, 
+	cast((case when DATEDIFF(day, ORDER_DATE, getdate()) > 2 then 0 else 1 end) as bit) as IsEditable
       from FACTORY_DC_ITEMS
       join ORDERS on ORDER_PKID = FACTORY_DC_ITEMS_ORDER_FKID
       join SERVICE_CATEGORY on SERVICE_CATEGORY_PKID = ORDER_SERVICE_CATEGORY_FKID 
@@ -360,6 +371,7 @@ async function GetOutletToFactryDCItems(Pkid) {
       join [dbo].[CUSTOMERS] on [CUSTOMER_PKID] = [ORDER_CUSTOMER_FKID]
       join [dbo].[CUSTOMER_TYPE] on [CUSTOMER_TYPE_PKID] = [CUSTOMER_TYPE_FKID]
       left join COUPONS on [COUPONS_PKID] = [ORDER_COUPON_FKID]
+      left join CUSTOMER_COUPON on CUSTOMER_COUPON_PKID = [ORDER_COUPON_FKID]
       where FACTORY_DC_ITEMS_DC_FKID = '${Pkid}'
       order by FACTORY_DC_ITEMS_PKID desc`
     );

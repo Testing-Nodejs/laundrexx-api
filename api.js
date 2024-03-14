@@ -5,6 +5,7 @@
  * @Last Modified time: 2022-08-18 15:28:27
  */
 "use strict";
+require('dotenv').config()
 var express = require("express");
 var bodyParser = require("body-parser");
 var cors = require("cors");
@@ -1968,6 +1969,24 @@ router.route("/OutletCurrentInventoryFilter").post(async (req, res) => {
   });
 });
 
+router.get("/OutletCurrentInventoryReport/:OutletID", async (req, res) => {
+  await OutletIntake.OutletCurrentInventoryReport(req.params.OutletID).then(
+    (data) => {
+      res.json(data);
+    }
+  );
+});
+
+router.route("/OutletCurrentInventoryReportFilter").post(async (req, res) => {
+  let obj = {
+    ...req.body,
+  };
+
+  await OutletIntake.OutletCurrentInventoryReportFilter(obj).then((data) => {
+    res.status(201).json(data);
+  });
+});
+
 router.route("/ConfirmSelfAuditReport").post(async (req, res) => {
   let obj = {
     ...req.body,
@@ -2449,8 +2468,16 @@ router.route("/CurrentFactoryInventoryFilter").post(async (req, res) => {
   });
 });
 
+router.get("/SampleMailTest", async (req, res) => {
+  await OutletOrders.SampleMailTest(req.params.FactoryID).then(
+    (data) => {
+      res.json(data);
+    }
+  );
+});
+
 // -------END----------------------------------------------------//
-var port = process.env.PORT || 7760;
+var port = process.env.PORT;
 
 const server = app.listen(port, () =>
   console.log("API is runnning at http://localhost:" + port)

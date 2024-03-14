@@ -205,7 +205,7 @@ async function ViewConfirmedOutletIntake(FactoryID) {
     let pool = await sql.connect(config);
 
     var result = await pool.request()
-      .query(`select distinct FACTORY_DC_QR,FACTORY_INVENTORY_DATE,FACTORY_INVENTORY_TIME,[FACTORY_DC_TOTAL_BAGS],[FACTORY_DC_PKID],[STORE_ID], [STORE_CODE], [STORE_NAME], [STORE_CITY], [STORE_PHONE], [STORE_STAFF_NAME], [STORE_STAFF_PHONE], [FACTORY_DC_DATE], [FACTORY_DC_NUMBER], [FACTORY_DC_ORDER_COUNT], (select sum(cast(ORDER_ITEMS as int)) from [dbo].[FACTORY_DC_ITEMS] join [dbo].[ORDERS] on [ORDER_PKID] = [FACTORY_DC_ITEMS_ORDER_FKID] where [FACTORY_DC_ITEMS_DC_FKID] = FACTORY_DC_PKID) as TotalQuantity
+      .query(`select distinct FACTORY_DC_QR,FACTORY_INVENTORY_DATE,FACTORY_INVENTORY_TIME,[FACTORY_DC_TOTAL_BAGS],[FACTORY_DC_PKID],[STORE_ID], [STORE_CODE], [STORE_NAME], [STORE_CITY], [STORE_PHONE], [STORE_STAFF_NAME], [STORE_STAFF_PHONE], [FACTORY_DC_DATE], [FACTORY_DC_NUMBER], [FACTORY_DC_ORDER_COUNT], (select sum(cast(ORDER_ITEM_QUANTITY as int)) from [dbo].[FACTORY_DC_ITEMS] join [dbo].[ORDERS] on [ORDER_PKID] = [FACTORY_DC_ITEMS_ORDER_FKID] join ORDER_ITEMS on ORDER_ITEM_ORDER_FKID = ORDER_PKID where [FACTORY_DC_ITEMS_DC_FKID] = FACTORY_DC_PKID) as TotalQuantity, (select sum(cast(ORDER_ITEM_COUNT as int)) from [dbo].[FACTORY_DC_ITEMS] join [dbo].[ORDERS] on [ORDER_PKID] = [FACTORY_DC_ITEMS_ORDER_FKID] join ORDER_ITEMS on ORDER_ITEM_ORDER_FKID = ORDER_PKID where [FACTORY_DC_ITEMS_DC_FKID] = FACTORY_DC_PKID) as TotalCount
       from [dbo].[FACTORY_DC]
       join [dbo].[STORES] on [STORE_PKID] = [FACTORY_DC_OUTLET_FKID]
       join [dbo].[STORE_STAFF] on [STORE_STAFF_PKID] = [FACTORY_DC_STAFF_FKID]
@@ -214,9 +214,10 @@ async function ViewConfirmedOutletIntake(FactoryID) {
 
     for (var i = 0; i < result.recordsets[0].length; i++) {
       var DCInnerItems = await pool.request()
-        .query(`select [ORDER_PKID], [ORDER_DATE],[ORDER_ORDER_NUMBER], [ORDER_INVOICE_NUMBER],[ORDER_DUE_DATE],[ORDER_GRAND_TOTAL_AMOUNT],[ORDER_QR],ORDER_ITEMS
-        from [dbo].[FACTORY_DC_ITEMS]
-        join [dbo].[ORDERS] on [ORDER_PKID] = [FACTORY_DC_ITEMS_ORDER_FKID]
+        .query(`select [ORDER_PKID], [ORDER_DATE],[ORDER_ORDER_NUMBER], [ORDER_INVOICE_NUMBER],[ORDER_DUE_DATE],[ORDER_GRAND_TOTAL_AMOUNT],[ORDER_QR],ORDER_ITEMS,
+        (select sum(cast(ORDER_ITEM_QUANTITY as int)) from ORDER_ITEMS where ORDER_ITEM_ORDER_FKID = ORDER_PKID) as TotalQuantity, (select sum(cast(ORDER_ITEM_COUNT as int)) from ORDER_ITEMS where ORDER_ITEM_ORDER_FKID = ORDER_PKID) as TotalCount
+                from [dbo].[FACTORY_DC_ITEMS]
+                join [dbo].[ORDERS] on [ORDER_PKID] = [FACTORY_DC_ITEMS_ORDER_FKID]
         where [FACTORY_DC_ITEMS_DC_FKID] = '${result.recordsets[0][i].FACTORY_DC_PKID}'`);
 
       var obj = {
@@ -236,6 +237,7 @@ async function ViewConfirmedOutletIntake(FactoryID) {
         FACTORY_DC_ORDER_COUNT: result.recordsets[0][i].FACTORY_DC_ORDER_COUNT,
         FACTORY_DC_TOTAL_BAGS: result.recordsets[0][i].FACTORY_DC_TOTAL_BAGS,
         TotalQuantity: result.recordsets[0][i].TotalQuantity,
+        TotalCount: result.recordsets[0][i].TotalCount,
         DCInnerItems: DCInnerItems.recordsets[0],
       };
 
@@ -256,7 +258,7 @@ async function ViewConfirmedOutletIntakeFilter(obj) {
 
     let pool = await sql.connect(config);
 
-    var MyQuery = `select distinct FACTORY_DC_QR,FACTORY_INVENTORY_DATE,FACTORY_INVENTORY_TIME,[FACTORY_DC_TOTAL_BAGS],[FACTORY_DC_PKID],[STORE_ID], [STORE_CODE], [STORE_NAME], [STORE_CITY], [STORE_PHONE], [STORE_STAFF_NAME], [STORE_STAFF_PHONE], [FACTORY_DC_DATE], [FACTORY_DC_NUMBER], [FACTORY_DC_ORDER_COUNT], (select sum(cast(ORDER_ITEMS as int)) from [dbo].[FACTORY_DC_ITEMS] join [dbo].[ORDERS] on [ORDER_PKID] = [FACTORY_DC_ITEMS_ORDER_FKID] where [FACTORY_DC_ITEMS_DC_FKID] = FACTORY_DC_PKID) as TotalQuantity
+    var MyQuery = `select distinct FACTORY_DC_QR,FACTORY_INVENTORY_DATE,FACTORY_INVENTORY_TIME,[FACTORY_DC_TOTAL_BAGS],[FACTORY_DC_PKID],[STORE_ID], [STORE_CODE], [STORE_NAME], [STORE_CITY], [STORE_PHONE], [STORE_STAFF_NAME], [STORE_STAFF_PHONE], [FACTORY_DC_DATE], [FACTORY_DC_NUMBER], [FACTORY_DC_ORDER_COUNT], (select sum(cast(ORDER_ITEM_QUANTITY as int)) from [dbo].[FACTORY_DC_ITEMS] join [dbo].[ORDERS] on [ORDER_PKID] = [FACTORY_DC_ITEMS_ORDER_FKID] join ORDER_ITEMS on ORDER_ITEM_ORDER_FKID = ORDER_PKID where [FACTORY_DC_ITEMS_DC_FKID] = FACTORY_DC_PKID) as TotalQuantity, (select sum(cast(ORDER_ITEM_COUNT as int)) from [dbo].[FACTORY_DC_ITEMS] join [dbo].[ORDERS] on [ORDER_PKID] = [FACTORY_DC_ITEMS_ORDER_FKID] join ORDER_ITEMS on ORDER_ITEM_ORDER_FKID = ORDER_PKID where [FACTORY_DC_ITEMS_DC_FKID] = FACTORY_DC_PKID) as TotalCount
     from [dbo].[FACTORY_DC]
     join [dbo].[STORES] on [STORE_PKID] = [FACTORY_DC_OUTLET_FKID]
     join [dbo].[STORE_STAFF] on [STORE_STAFF_PKID] = [FACTORY_DC_STAFF_FKID]
@@ -274,9 +276,10 @@ async function ViewConfirmedOutletIntakeFilter(obj) {
       var result3 = await pool.request().query(MyQuery);
       for (var i = 0; i < result3.recordsets[0].length; i++) {
         var DCInnerItems = await pool.request()
-          .query(`select distinct [ORDER_PKID], [ORDER_DATE],[ORDER_ORDER_NUMBER], [ORDER_INVOICE_NUMBER],[ORDER_DUE_DATE],[ORDER_GRAND_TOTAL_AMOUNT],[ORDER_QR],ORDER_ITEMS
-          from [dbo].[FACTORY_DC_ITEMS]
-          join [dbo].[ORDERS] on [ORDER_PKID] = [FACTORY_DC_ITEMS_ORDER_FKID]
+          .query(`select [ORDER_PKID], [ORDER_DATE],[ORDER_ORDER_NUMBER], [ORDER_INVOICE_NUMBER],[ORDER_DUE_DATE],[ORDER_GRAND_TOTAL_AMOUNT],[ORDER_QR],ORDER_ITEMS,
+          (select sum(cast(ORDER_ITEM_QUANTITY as int)) from ORDER_ITEMS where ORDER_ITEM_ORDER_FKID = ORDER_PKID) as TotalQuantity, (select sum(cast(ORDER_ITEM_COUNT as int)) from ORDER_ITEMS where ORDER_ITEM_ORDER_FKID = ORDER_PKID) as TotalCount
+                  from [dbo].[FACTORY_DC_ITEMS]
+                  join [dbo].[ORDERS] on [ORDER_PKID] = [FACTORY_DC_ITEMS_ORDER_FKID]
           where [FACTORY_DC_ITEMS_DC_FKID] = '${result3.recordsets[0][i].FACTORY_DC_PKID}'`);
 
         var obj = {
@@ -299,13 +302,14 @@ async function ViewConfirmedOutletIntakeFilter(obj) {
             result3.recordsets[0][i].FACTORY_DC_ORDER_COUNT,
           FACTORY_DC_TOTAL_BAGS: result3.recordsets[0][i].FACTORY_DC_TOTAL_BAGS,
           TotalQuantity: result3.recordsets[0][i].TotalQuantity,
+          TotalCount: result3.recordsets[0][i].TotalCount,
           DCInnerItems: DCInnerItems.recordsets[0],
         };
         arr.push(obj);
       }
       return arr;
     } else {
-      if (obj.Outlet == "-") {
+      if (obj.OutletID == "-") {
       } else {
         MyQuery += ` and FACTORY_DC_OUTLET_FKID = '${obj.OutletID}' `;
       }
@@ -326,9 +330,10 @@ async function ViewConfirmedOutletIntakeFilter(obj) {
       var result4 = await pool.request().query(MyQuery);
       for (var i = 0; i < result4.recordsets[0].length; i++) {
         var DCInnerItems = await pool.request()
-          .query(`select [ORDER_PKID], [ORDER_DATE],[ORDER_ORDER_NUMBER], [ORDER_INVOICE_NUMBER],[ORDER_DUE_DATE],[ORDER_GRAND_TOTAL_AMOUNT],[ORDER_QR],ORDER_ITEMS
-          from [dbo].[FACTORY_DC_ITEMS]
-          join [dbo].[ORDERS] on [ORDER_PKID] = [FACTORY_DC_ITEMS_ORDER_FKID]
+          .query(`select [ORDER_PKID], [ORDER_DATE],[ORDER_ORDER_NUMBER], [ORDER_INVOICE_NUMBER],[ORDER_DUE_DATE],[ORDER_GRAND_TOTAL_AMOUNT],[ORDER_QR],ORDER_ITEMS,
+          (select sum(cast(ORDER_ITEM_QUANTITY as int)) from ORDER_ITEMS where ORDER_ITEM_ORDER_FKID = ORDER_PKID) as TotalQuantity, (select sum(cast(ORDER_ITEM_COUNT as int)) from ORDER_ITEMS where ORDER_ITEM_ORDER_FKID = ORDER_PKID) as TotalCount
+                  from [dbo].[FACTORY_DC_ITEMS]
+                  join [dbo].[ORDERS] on [ORDER_PKID] = [FACTORY_DC_ITEMS_ORDER_FKID]
           where [FACTORY_DC_ITEMS_DC_FKID] = '${result4.recordsets[0][i].FACTORY_DC_PKID}'`);
 
         var obj = {
@@ -351,6 +356,7 @@ async function ViewConfirmedOutletIntakeFilter(obj) {
             result4.recordsets[0][i].FACTORY_DC_ORDER_COUNT,
           FACTORY_DC_TOTAL_BAGS: result4.recordsets[0][i].FACTORY_DC_TOTAL_BAGS,
           TotalQuantity: result4.recordsets[0][i].TotalQuantity,
+          TotalCount: result4.recordsets[0][i].TotalCount,
           DCInnerItems: DCInnerItems.recordsets[0],
         };
         arr.push(obj);
@@ -369,7 +375,7 @@ async function ViewConfirmedOutletIntakeByDCNumber(obj) {
     let pool = await sql.connect(config);
 
     var result = await pool.request()
-      .query(`select distinct FACTORY_DC_QR,FACTORY_INVENTORY_DATE,FACTORY_INVENTORY_TIME,[FACTORY_DC_TOTAL_BAGS],[FACTORY_DC_PKID],[STORE_ID], [STORE_CODE], [STORE_NAME], [STORE_CITY], [STORE_PHONE], [STORE_STAFF_NAME], [STORE_STAFF_PHONE], [FACTORY_DC_DATE], [FACTORY_DC_NUMBER], [FACTORY_DC_ORDER_COUNT], (select sum(cast(ORDER_ITEMS as int)) from [dbo].[FACTORY_DC_ITEMS] join [dbo].[ORDERS] on [ORDER_PKID] = [FACTORY_DC_ITEMS_ORDER_FKID] where [FACTORY_DC_ITEMS_DC_FKID] = FACTORY_DC_PKID) as TotalQuantity
+      .query(`select distinct FACTORY_DC_QR,FACTORY_INVENTORY_DATE,FACTORY_INVENTORY_TIME,[FACTORY_DC_TOTAL_BAGS],[FACTORY_DC_PKID],[STORE_ID], [STORE_CODE], [STORE_NAME], [STORE_CITY], [STORE_PHONE], [STORE_STAFF_NAME], [STORE_STAFF_PHONE], [FACTORY_DC_DATE], [FACTORY_DC_NUMBER], [FACTORY_DC_ORDER_COUNT], (select sum(cast(ORDER_ITEM_QUANTITY as int)) from [dbo].[FACTORY_DC_ITEMS] join [dbo].[ORDERS] on [ORDER_PKID] = [FACTORY_DC_ITEMS_ORDER_FKID] join ORDER_ITEMS on ORDER_ITEM_ORDER_FKID = ORDER_PKID where [FACTORY_DC_ITEMS_DC_FKID] = FACTORY_DC_PKID) as TotalQuantity, (select sum(cast(ORDER_ITEM_COUNT as int)) from [dbo].[FACTORY_DC_ITEMS] join [dbo].[ORDERS] on [ORDER_PKID] = [FACTORY_DC_ITEMS_ORDER_FKID] join ORDER_ITEMS on ORDER_ITEM_ORDER_FKID = ORDER_PKID where [FACTORY_DC_ITEMS_DC_FKID] = FACTORY_DC_PKID) as TotalCount
       from [dbo].[FACTORY_DC]
       join [dbo].[STORES] on [STORE_PKID] = [FACTORY_DC_OUTLET_FKID]
       join [dbo].[STORE_STAFF] on [STORE_STAFF_PKID] = [FACTORY_DC_STAFF_FKID]
@@ -378,9 +384,10 @@ async function ViewConfirmedOutletIntakeByDCNumber(obj) {
 
     for (var i = 0; i < result.recordsets[0].length; i++) {
       var DCInnerItems = await pool.request()
-        .query(`select [ORDER_PKID], [ORDER_DATE],[ORDER_ORDER_NUMBER], [ORDER_INVOICE_NUMBER],[ORDER_DUE_DATE],[ORDER_GRAND_TOTAL_AMOUNT],[ORDER_QR],ORDER_ITEMS
-        from [dbo].[FACTORY_DC_ITEMS]
-        join [dbo].[ORDERS] on [ORDER_PKID] = [FACTORY_DC_ITEMS_ORDER_FKID]
+        .query(`select [ORDER_PKID], [ORDER_DATE],[ORDER_ORDER_NUMBER], [ORDER_INVOICE_NUMBER],[ORDER_DUE_DATE],[ORDER_GRAND_TOTAL_AMOUNT],[ORDER_QR],ORDER_ITEMS,
+        (select sum(cast(ORDER_ITEM_QUANTITY as int)) from ORDER_ITEMS where ORDER_ITEM_ORDER_FKID = ORDER_PKID) as TotalQuantity, (select sum(cast(ORDER_ITEM_COUNT as int)) from ORDER_ITEMS where ORDER_ITEM_ORDER_FKID = ORDER_PKID) as TotalCount
+                from [dbo].[FACTORY_DC_ITEMS]
+                join [dbo].[ORDERS] on [ORDER_PKID] = [FACTORY_DC_ITEMS_ORDER_FKID]
         where [FACTORY_DC_ITEMS_DC_FKID] = '${result.recordsets[0][i].FACTORY_DC_PKID}'`);
 
       var obj = {
@@ -400,6 +407,7 @@ async function ViewConfirmedOutletIntakeByDCNumber(obj) {
         FACTORY_DC_ORDER_COUNT: result.recordsets[0][i].FACTORY_DC_ORDER_COUNT,
         FACTORY_DC_TOTAL_BAGS: result.recordsets[0][i].FACTORY_DC_TOTAL_BAGS,
         TotalQuantity: result.recordsets[0][i].TotalQuantity,
+        TotalCount: result.recordsets[0][i].TotalCount,
         DCInnerItems: DCInnerItems.recordsets[0],
       };
 
@@ -618,17 +626,21 @@ async function ViewConfirmedFactoryIntake(FactoryID) {
     let pool = await sql.connect(config);
 
     var result = await pool.request()
-      .query(`select distinct FACTORY_INVENTORY_DATE,FACTORY_INVENTORY_TIME,FACTORY_TO_FACTORY_DC_QR, FACTORY_STAFF_NAME,[FACTORY_TO_FACTORY_DC_TOTAL_BAGS],[FACTORY_TO_FACTORY_DC_PKID],[FACTORY_TO_FACTORY_DC_TO_FACTORY_FKID], tf.[FACTORY_CODE] as TO_FACTORY_CODE, tf.[FACTORY_NAME] as TO_FACTORY_NAME, ff.[FACTORY_CODE] as FROM_FACTORY_CODE, ff.[FACTORY_NAME] as FROM_FACTORY_NAME, [FACTORY_TO_FACTORY_DC_DATE], [FACTORY_TO_FACTORY_DC_NUMBER], [FACTORY_TO_FACTORY_DC_ITEM_COUNT]
-      from [dbo].[FACTORY_TO_FACTORY_DC]
-      join [dbo].[FACTORY] ff on ff.[FACTORY_PKID] = [FACTORY_TO_FACTORY_DC_FROM_FACTORY_FKID]
-	    join [dbo].[FACTORY] tf on tf.[FACTORY_PKID] = [FACTORY_TO_FACTORY_DC_TO_FACTORY_FKID]
-      join [dbo].[FACTORY_STAFF] on [FACTORY_STAFF_PKID] = [FACTORY_TO_FACTORY_DC_STAFF_FKID]
-      join FACTORY_INVENTORY on FACTORY_INVENTORY_RECEIVED_DC_FKID = FACTORY_TO_FACTORY_DC_PKID and FACTORY_INVENTORY_RECEIVED_FROM = 'Factory'
+      .query(`select distinct FACTORY_INVENTORY_DATE,FACTORY_INVENTORY_TIME,FACTORY_TO_FACTORY_DC_QR, FACTORY_STAFF_NAME,[FACTORY_TO_FACTORY_DC_TOTAL_BAGS],[FACTORY_TO_FACTORY_DC_PKID],[FACTORY_TO_FACTORY_DC_TO_FACTORY_FKID], tf.[FACTORY_CODE] as TO_FACTORY_CODE, tf.[FACTORY_NAME] as TO_FACTORY_NAME, ff.[FACTORY_CODE] as FROM_FACTORY_CODE, ff.[FACTORY_NAME] as FROM_FACTORY_NAME, [FACTORY_TO_FACTORY_DC_DATE], [FACTORY_TO_FACTORY_DC_NUMBER], [FACTORY_TO_FACTORY_DC_ITEM_COUNT],
+      (select sum(ORDER_ITEM_QUANTITY) from [dbo].[ORDER_ITEMS] join [dbo].[FACTORY_TO_FACTORY_DC_ITEMS] on FACTORY_TO_FACTORY_DC_ITEMS_ITEMS_FKID = ORDER_ITEM_PKID and  [FACTORY_TO_FACTORY_DC_ITEMS_PRIMARY_FKID] =  FACTORY_TO_FACTORY_DC_PKID ) as TotalQuantity,
+      (select sum(ORDER_ITEM_COUNT) from [dbo].[ORDER_ITEMS] join [dbo].[FACTORY_TO_FACTORY_DC_ITEMS] on FACTORY_TO_FACTORY_DC_ITEMS_ITEMS_FKID = ORDER_ITEM_PKID and  [FACTORY_TO_FACTORY_DC_ITEMS_PRIMARY_FKID] =  FACTORY_TO_FACTORY_DC_PKID ) as TotalCount
+            from [dbo].[FACTORY_TO_FACTORY_DC]
+            join [dbo].[FACTORY] ff on ff.[FACTORY_PKID] = [FACTORY_TO_FACTORY_DC_FROM_FACTORY_FKID]
+            join [dbo].[FACTORY] tf on tf.[FACTORY_PKID] = [FACTORY_TO_FACTORY_DC_TO_FACTORY_FKID]
+            join [dbo].[FACTORY_STAFF] on [FACTORY_STAFF_PKID] = [FACTORY_TO_FACTORY_DC_STAFF_FKID]
+            join FACTORY_INVENTORY on FACTORY_INVENTORY_RECEIVED_DC_FKID = FACTORY_TO_FACTORY_DC_PKID and FACTORY_INVENTORY_RECEIVED_FROM = 'Factory'
       where [FACTORY_TO_FACTORY_DC_TO_FACTORY_FKID] = '${FactoryID}' and [FACTORY_TO_FACTORY_DC_STATUS] = 1`);
 
     for (var i = 0; i < result.recordsets[0].length; i++) {
       var DCInnerItems = await pool.request()
-        .query(`select ITEMS_NAME,[ORDER_ITEM_PKID], [ORDER_DATE],[ORDER_ORDER_NUMBER],[ORDER_ITEM_NUMBER], [ORDER_INVOICE_NUMBER],[ORDER_DUE_DATE],[ORDER_GRAND_TOTAL_AMOUNT],[ORDER_QR],[ORDER_ITEM_QR]
+        .query(`select ITEMS_NAME,[ORDER_ITEM_PKID], [ORDER_DATE],[ORDER_ORDER_NUMBER],[ORDER_ITEM_NUMBER], [ORDER_INVOICE_NUMBER],[ORDER_DUE_DATE],[ORDER_GRAND_TOTAL_AMOUNT],[ORDER_QR],[ORDER_ITEM_QR],
+        (select sum(ORDER_ITEM_QUANTITY) from [dbo].[ORDER_ITEMS] where FACTORY_TO_FACTORY_DC_ITEMS_ITEMS_FKID = ORDER_ITEM_PKID) as TotalQuantity,
+      (select sum(ORDER_ITEM_COUNT) from [dbo].[ORDER_ITEMS] where FACTORY_TO_FACTORY_DC_ITEMS_ITEMS_FKID = ORDER_ITEM_PKID) as TotalCount
         from [dbo].[FACTORY_TO_FACTORY_DC_ITEMS]
         join ORDER_ITEMS on ORDER_ITEM_PKID = FACTORY_TO_FACTORY_DC_ITEMS_ITEMS_FKID
         join ITEMS on ITEMS_PKID = ORDER_ITEM_ITEM_FKID
@@ -657,6 +669,8 @@ async function ViewConfirmedFactoryIntake(FactoryID) {
           result.recordsets[0][i].FACTORY_TO_FACTORY_DC_NUMBER,
         FACTORY_TO_FACTORY_DC_ITEM_COUNT:
           result.recordsets[0][i].FACTORY_TO_FACTORY_DC_ITEM_COUNT,
+        TotalQuantity: result.recordsets[0][i].TotalQuantity,
+        TotalCount: result.recordsets[0][i].TotalCount,
         DCInnerItems: DCInnerItems.recordsets[0],
       };
 
@@ -677,7 +691,9 @@ async function ViewConfirmedFactoryIntakeFilter(obj) {
 
     let pool = await sql.connect(config);
 
-    var MyQuery = `select distinct FACTORY_INVENTORY_DATE,FACTORY_INVENTORY_TIME,FACTORY_TO_FACTORY_DC_QR,FACTORY_STAFF_NAME,[FACTORY_TO_FACTORY_DC_TOTAL_BAGS],[FACTORY_TO_FACTORY_DC_PKID],[FACTORY_TO_FACTORY_DC_TO_FACTORY_FKID], tf.[FACTORY_CODE] as TO_FACTORY_CODE, tf.[FACTORY_NAME] as TO_FACTORY_NAME, ff.[FACTORY_CODE] as FROM_FACTORY_CODE, ff.[FACTORY_NAME] as FROM_FACTORY_NAME, [FACTORY_TO_FACTORY_DC_DATE], [FACTORY_TO_FACTORY_DC_NUMBER], [FACTORY_TO_FACTORY_DC_ITEM_COUNT]
+    var MyQuery = `select distinct FACTORY_INVENTORY_DATE,FACTORY_INVENTORY_TIME,FACTORY_TO_FACTORY_DC_QR,FACTORY_STAFF_NAME,[FACTORY_TO_FACTORY_DC_TOTAL_BAGS],[FACTORY_TO_FACTORY_DC_PKID],[FACTORY_TO_FACTORY_DC_TO_FACTORY_FKID], tf.[FACTORY_CODE] as TO_FACTORY_CODE, tf.[FACTORY_NAME] as TO_FACTORY_NAME, ff.[FACTORY_CODE] as FROM_FACTORY_CODE, ff.[FACTORY_NAME] as FROM_FACTORY_NAME, [FACTORY_TO_FACTORY_DC_DATE], [FACTORY_TO_FACTORY_DC_NUMBER], [FACTORY_TO_FACTORY_DC_ITEM_COUNT],
+    (select sum(ORDER_ITEM_QUANTITY) from [dbo].[ORDER_ITEMS] join [dbo].[FACTORY_TO_FACTORY_DC_ITEMS] on FACTORY_TO_FACTORY_DC_ITEMS_ITEMS_FKID = ORDER_ITEM_PKID and  [FACTORY_TO_FACTORY_DC_ITEMS_PRIMARY_FKID] =  FACTORY_TO_FACTORY_DC_PKID ) as TotalQuantity,
+      (select sum(ORDER_ITEM_COUNT) from [dbo].[ORDER_ITEMS] join [dbo].[FACTORY_TO_FACTORY_DC_ITEMS] on FACTORY_TO_FACTORY_DC_ITEMS_ITEMS_FKID = ORDER_ITEM_PKID and  [FACTORY_TO_FACTORY_DC_ITEMS_PRIMARY_FKID] =  FACTORY_TO_FACTORY_DC_PKID ) as TotalCount
     from [dbo].[FACTORY_TO_FACTORY_DC]
     join [dbo].[FACTORY] ff on ff.[FACTORY_PKID] = [FACTORY_TO_FACTORY_DC_FROM_FACTORY_FKID]
 	  join [dbo].[FACTORY] tf on tf.[FACTORY_PKID] = [FACTORY_TO_FACTORY_DC_TO_FACTORY_FKID]
@@ -696,7 +712,9 @@ async function ViewConfirmedFactoryIntakeFilter(obj) {
       var result3 = await pool.request().query(MyQuery);
       for (var i = 0; i < result3.recordsets[0].length; i++) {
         var DCInnerItems = await pool.request()
-          .query(`select ITEMS_NAME,[ORDER_ITEM_PKID], [ORDER_DATE],[ORDER_ORDER_NUMBER],[ORDER_ITEM_NUMBER], [ORDER_INVOICE_NUMBER],[ORDER_DUE_DATE],[ORDER_GRAND_TOTAL_AMOUNT],[ORDER_QR],[ORDER_ITEM_QR]
+          .query(`select ITEMS_NAME,[ORDER_ITEM_PKID], [ORDER_DATE],[ORDER_ORDER_NUMBER],[ORDER_ITEM_NUMBER], [ORDER_INVOICE_NUMBER],[ORDER_DUE_DATE],[ORDER_GRAND_TOTAL_AMOUNT],[ORDER_QR],[ORDER_ITEM_QR],
+          (select sum(ORDER_ITEM_QUANTITY) from [dbo].[ORDER_ITEMS] where FACTORY_TO_FACTORY_DC_ITEMS_ITEMS_FKID = ORDER_ITEM_PKID) as TotalQuantity,
+          (select sum(ORDER_ITEM_COUNT) from [dbo].[ORDER_ITEMS] where FACTORY_TO_FACTORY_DC_ITEMS_ITEMS_FKID = ORDER_ITEM_PKID) as TotalCount
           from [dbo].[FACTORY_TO_FACTORY_DC_ITEMS]
           join ORDER_ITEMS on ORDER_ITEM_PKID = FACTORY_TO_FACTORY_DC_ITEMS_ITEMS_FKID
           join ITEMS on ITEMS_PKID = ORDER_ITEM_ITEM_FKID
@@ -712,21 +730,23 @@ async function ViewConfirmedFactoryIntakeFilter(obj) {
           FACTORY_TO_FACTORY_DC_PKID:
             result3.recordsets[0][i].FACTORY_TO_FACTORY_DC_PKID,
           FACTORY_INVENTORY_DATE:
-            result.recordsets[0][i].FACTORY_INVENTORY_DATE,
+            result3.recordsets[0][i].FACTORY_INVENTORY_DATE,
           FACTORY_INVENTORY_TIME:
-            result.recordsets[0][i].FACTORY_INVENTORY_TIME,
+            result3.recordsets[0][i].FACTORY_INVENTORY_TIME,
           FACTORY_TO_FACTORY_DC_TO_FACTORY_FKID:
             result3.recordsets[0][i].FACTORY_TO_FACTORY_DC_TO_FACTORY_FKID,
-          TO_FACTORY_CODE: result.recordsets[0][i].TO_FACTORY_CODE,
-          TO_FACTORY_NAME: result.recordsets[0][i].TO_FACTORY_NAME,
-          FROM_FACTORY_CODE: result.recordsets[0][i].FROM_FACTORY_CODE,
-          FROM_FACTORY_NAME: result.recordsets[0][i].FROM_FACTORY_NAME,
+          TO_FACTORY_CODE: result3.recordsets[0][i].TO_FACTORY_CODE,
+          TO_FACTORY_NAME: result3.recordsets[0][i].TO_FACTORY_NAME,
+          FROM_FACTORY_CODE: result3.recordsets[0][i].FROM_FACTORY_CODE,
+          FROM_FACTORY_NAME: result3.recordsets[0][i].FROM_FACTORY_NAME,
           FACTORY_TO_FACTORY_DC_DATE:
             result3.recordsets[0][i].FACTORY_TO_FACTORY_DC_DATE,
           FACTORY_TO_FACTORY_DC_NUMBER:
             result3.recordsets[0][i].FACTORY_TO_FACTORY_DC_NUMBER,
           FACTORY_TO_FACTORY_DC_ITEM_COUNT:
             result3.recordsets[0][i].FACTORY_TO_FACTORY_DC_ITEM_COUNT,
+          TotalQuantity: result3.recordsets[0][i].TotalQuantity,
+          TotalCount: result3.recordsets[0][i].TotalCount,
           DCInnerItems: DCInnerItems.recordsets[0],
         };
 
@@ -754,7 +774,9 @@ async function ViewConfirmedFactoryIntakeFilter(obj) {
       var result4 = await pool.request().query(MyQuery);
       for (var i = 0; i < result4.recordsets[0].length; i++) {
         var DCInnerItems = await pool.request()
-          .query(`select ITEMS_NAME,[ORDER_ITEM_PKID], [ORDER_DATE],[ORDER_ORDER_NUMBER],[ORDER_ITEM_NUMBER], [ORDER_INVOICE_NUMBER],[ORDER_DUE_DATE],[ORDER_GRAND_TOTAL_AMOUNT],[ORDER_QR],[ORDER_ITEM_QR]
+          .query(`select ITEMS_NAME,[ORDER_ITEM_PKID], [ORDER_DATE],[ORDER_ORDER_NUMBER],[ORDER_ITEM_NUMBER], [ORDER_INVOICE_NUMBER],[ORDER_DUE_DATE],[ORDER_GRAND_TOTAL_AMOUNT],[ORDER_QR],[ORDER_ITEM_QR],
+          (select sum(ORDER_ITEM_QUANTITY) from [dbo].[ORDER_ITEMS] where FACTORY_TO_FACTORY_DC_ITEMS_ITEMS_FKID = ORDER_ITEM_PKID) as TotalQuantity,
+          (select sum(ORDER_ITEM_COUNT) from [dbo].[ORDER_ITEMS] where FACTORY_TO_FACTORY_DC_ITEMS_ITEMS_FKID = ORDER_ITEM_PKID) as TotalCount
           from [dbo].[FACTORY_TO_FACTORY_DC_ITEMS]
           join ORDER_ITEMS on ORDER_ITEM_PKID = FACTORY_TO_FACTORY_DC_ITEMS_ITEMS_FKID
           join ITEMS on ITEMS_PKID = ORDER_ITEM_ITEM_FKID
@@ -766,23 +788,27 @@ async function ViewConfirmedFactoryIntakeFilter(obj) {
           FACTORY_TO_FACTORY_DC_QR:
             result4.recordsets[0][i].FACTORY_TO_FACTORY_DC_QR,
           FACTORY_INVENTORY_DATE:
-            result.recordsets[0][i].FACTORY_INVENTORY_DATE,
+            result4.recordsets[0][i].FACTORY_INVENTORY_DATE,
           FACTORY_INVENTORY_TIME:
-            result.recordsets[0][i].FACTORY_INVENTORY_TIME,
+            result4.recordsets[0][i].FACTORY_INVENTORY_TIME,
           FACTORY_TO_FACTORY_DC_TOTAL_BAGS:
             result4.recordsets[0][i].FACTORY_TO_FACTORY_DC_TOTAL_BAGS,
           FACTORY_TO_FACTORY_DC_PKID:
             result4.recordsets[0][i].FACTORY_TO_FACTORY_DC_PKID,
           FACTORY_TO_FACTORY_DC_TO_FACTORY_FKID:
             result4.recordsets[0][i].FACTORY_TO_FACTORY_DC_TO_FACTORY_FKID,
-          FACTORY_CODE: result4.recordsets[0][i].FACTORY_CODE,
-          FACTORY_NAME: result4.recordsets[0][i].FACTORY_NAME,
+            TO_FACTORY_CODE: result4.recordsets[0][i].TO_FACTORY_CODE,
+            TO_FACTORY_NAME: result4.recordsets[0][i].TO_FACTORY_NAME,
+            FROM_FACTORY_CODE: result4.recordsets[0][i].FROM_FACTORY_CODE,
+            FROM_FACTORY_NAME: result4.recordsets[0][i].FROM_FACTORY_NAME,
           FACTORY_TO_FACTORY_DC_DATE:
             result4.recordsets[0][i].FACTORY_TO_FACTORY_DC_DATE,
           FACTORY_TO_FACTORY_DC_NUMBER:
             result4.recordsets[0][i].FACTORY_TO_FACTORY_DC_NUMBER,
           FACTORY_TO_FACTORY_DC_ITEM_COUNT:
             result4.recordsets[0][i].FACTORY_TO_FACTORY_DC_ITEM_COUNT,
+            TotalQuantity: result4.recordsets[0][i].TotalQuantity,
+          TotalCount: result4.recordsets[0][i].TotalCount,
           DCInnerItems: DCInnerItems.recordsets[0],
         };
 
@@ -801,7 +827,9 @@ async function ViewConfirmedFactoryIntakeDCPrint(obj) {
     let pool = await sql.connect(config);
 
     var result = await pool.request()
-      .query(`select distinct FACTORY_INVENTORY_DATE,FACTORY_INVENTORY_TIME,FACTORY_TO_FACTORY_DC_QR, FACTORY_STAFF_NAME,[FACTORY_TO_FACTORY_DC_TOTAL_BAGS],[FACTORY_TO_FACTORY_DC_PKID],[FACTORY_TO_FACTORY_DC_TO_FACTORY_FKID], tf.[FACTORY_CODE] as TO_FACTORY_CODE, tf.[FACTORY_NAME] as TO_FACTORY_NAME, ff.[FACTORY_CODE] as FROM_FACTORY_CODE, ff.[FACTORY_NAME] as FROM_FACTORY_NAME, [FACTORY_TO_FACTORY_DC_DATE], [FACTORY_TO_FACTORY_DC_NUMBER], [FACTORY_TO_FACTORY_DC_ITEM_COUNT]
+      .query(`select distinct FACTORY_INVENTORY_DATE,FACTORY_INVENTORY_TIME,FACTORY_TO_FACTORY_DC_QR, FACTORY_STAFF_NAME,[FACTORY_TO_FACTORY_DC_TOTAL_BAGS],[FACTORY_TO_FACTORY_DC_PKID],[FACTORY_TO_FACTORY_DC_TO_FACTORY_FKID], tf.[FACTORY_CODE] as TO_FACTORY_CODE, tf.[FACTORY_NAME] as TO_FACTORY_NAME, ff.[FACTORY_CODE] as FROM_FACTORY_CODE, ff.[FACTORY_NAME] as FROM_FACTORY_NAME, [FACTORY_TO_FACTORY_DC_DATE], [FACTORY_TO_FACTORY_DC_NUMBER], [FACTORY_TO_FACTORY_DC_ITEM_COUNT],
+      (select sum(ORDER_ITEM_QUANTITY) from [dbo].[ORDER_ITEMS] join [dbo].[FACTORY_TO_FACTORY_DC_ITEMS] on FACTORY_TO_FACTORY_DC_ITEMS_ITEMS_FKID = ORDER_ITEM_PKID and  [FACTORY_TO_FACTORY_DC_ITEMS_PRIMARY_FKID] =  FACTORY_TO_FACTORY_DC_PKID ) as TotalQuantity,
+      (select sum(ORDER_ITEM_COUNT) from [dbo].[ORDER_ITEMS] join [dbo].[FACTORY_TO_FACTORY_DC_ITEMS] on FACTORY_TO_FACTORY_DC_ITEMS_ITEMS_FKID = ORDER_ITEM_PKID and  [FACTORY_TO_FACTORY_DC_ITEMS_PRIMARY_FKID] =  FACTORY_TO_FACTORY_DC_PKID ) as TotalCount
       from [dbo].[FACTORY_TO_FACTORY_DC]
       join [dbo].[FACTORY] ff on ff.[FACTORY_PKID] = [FACTORY_TO_FACTORY_DC_FROM_FACTORY_FKID]
 	    join [dbo].[FACTORY] tf on tf.[FACTORY_PKID] = [FACTORY_TO_FACTORY_DC_TO_FACTORY_FKID]
@@ -811,7 +839,9 @@ async function ViewConfirmedFactoryIntakeDCPrint(obj) {
 
     for (var i = 0; i < result.recordsets[0].length; i++) {
       var DCInnerItems = await pool.request()
-        .query(`select ITEMS_NAME,[ORDER_ITEM_PKID], [ORDER_DATE],[ORDER_ORDER_NUMBER],[ORDER_ITEM_NUMBER], [ORDER_INVOICE_NUMBER],[ORDER_DUE_DATE],[ORDER_GRAND_TOTAL_AMOUNT],[ORDER_QR],[ORDER_ITEM_QR]
+        .query(`select ITEMS_NAME,[ORDER_ITEM_PKID], [ORDER_DATE],[ORDER_ORDER_NUMBER],[ORDER_ITEM_NUMBER], [ORDER_INVOICE_NUMBER],[ORDER_DUE_DATE],[ORDER_GRAND_TOTAL_AMOUNT],[ORDER_QR],[ORDER_ITEM_QR],
+        (select sum(ORDER_ITEM_QUANTITY) from [dbo].[ORDER_ITEMS] where FACTORY_TO_FACTORY_DC_ITEMS_ITEMS_FKID = ORDER_ITEM_PKID) as TotalQuantity,
+        (select sum(ORDER_ITEM_COUNT) from [dbo].[ORDER_ITEMS] where FACTORY_TO_FACTORY_DC_ITEMS_ITEMS_FKID = ORDER_ITEM_PKID) as TotalCount
         from [dbo].[FACTORY_TO_FACTORY_DC_ITEMS]
         join ORDER_ITEMS on ORDER_ITEM_PKID = FACTORY_TO_FACTORY_DC_ITEMS_ITEMS_FKID
         join ITEMS on ITEMS_PKID = ORDER_ITEM_ITEM_FKID
@@ -840,6 +870,8 @@ async function ViewConfirmedFactoryIntakeDCPrint(obj) {
           result.recordsets[0][i].FACTORY_TO_FACTORY_DC_NUMBER,
         FACTORY_TO_FACTORY_DC_ITEM_COUNT:
           result.recordsets[0][i].FACTORY_TO_FACTORY_DC_ITEM_COUNT,
+          TotalQuantity: result.recordsets[0][i].TotalQuantity,
+          TotalCount: result.recordsets[0][i].TotalCount,
         DCInnerItems: DCInnerItems.recordsets[0],
       };
 
@@ -861,7 +893,8 @@ async function CurrentFactoryInventory(FactoryID) {
 
     var result1 = await pool.request().query(
       `select fi.*, o.ORDER_ORDER_NUMBER, o.ORDER_DATE, o.ORDER_DUE_DATE, oi.ORDER_ITEM_NUMBER, i.ITEMS_NAME, ias.ADDITIONAL_SERVICE_NAME, s.STORE_NAME, s.STORE_CODE, s.STORE_SHORT_CODE,
-      (select sum(cast([ORDER_ITEM_QUANTITY] as int)) from [dbo].[ORDER_ITEMS] where [ORDER_ITEM_PKID] = oi.ORDER_ITEM_PKID) as TotalQuantity
+      (select sum(cast([ORDER_ITEM_QUANTITY] as int)) from [dbo].[ORDER_ITEMS] where [ORDER_ITEM_PKID] = oi.ORDER_ITEM_PKID) as TotalQuantity,
+      (select sum(cast([ORDER_ITEM_COUNT] as int)) from [dbo].[ORDER_ITEMS] where [ORDER_ITEM_PKID] = oi.ORDER_ITEM_PKID) as TotalCount
       from FACTORY_INVENTORY fi
       join ORDER_ITEMS oi on oi.ORDER_ITEM_PKID = fi.FACTORY_INVENTORY_ITEM_FKID
       join ORDERS o on o.ORDER_PKID = fi.FACTORY_INVENTORY_ORDER_FKID
@@ -884,6 +917,7 @@ async function CurrentFactoryInventory(FactoryID) {
         );
         var obj = {
           TotalQuantity: result1.recordsets[0][i].TotalQuantity,
+          TotalCount: result1.recordsets[0][i].TotalCount,
           FACTORY_INVENTORY_PKID:
             result1.recordsets[0][i].FACTORY_INVENTORY_PKID,
           FACTORY_INVENTORY_FACTORY_FKID:
@@ -931,6 +965,7 @@ async function CurrentFactoryInventory(FactoryID) {
         );
         var obj = {
           TotalQuantity: result1.recordsets[0][i].TotalQuantity,
+          TotalCount: result1.recordsets[0][i].TotalCount,
           FACTORY_INVENTORY_PKID:
             result1.recordsets[0][i].FACTORY_INVENTORY_PKID,
           FACTORY_INVENTORY_FACTORY_FKID:
@@ -983,18 +1018,31 @@ async function CurrentFactoryInventoryFilter(obj) {
     console.log(obj);
     var typeee = obj.Factory_Outlet_Type;
     var arr = [];
+    var MyQuery = ``;
     let pool = await sql.connect(config);
 
-    var MyQuery = `select fi.*, o.ORDER_ORDER_NUMBER, o.ORDER_DATE, o.ORDER_DUE_DATE, oi.ORDER_ITEM_NUMBER, i.ITEMS_NAME, ias.ADDITIONAL_SERVICE_NAME, s.STORE_NAME, s.STORE_CODE, s.STORE_SHORT_CODE,
-    (select sum(cast([ORDER_ITEM_QUANTITY] as int)) from [dbo].[ORDER_ITEMS] where [ORDER_ITEM_PKID] = oi.ORDER_ITEM_PKID) as TotalQuantity
-    from FACTORY_INVENTORY fi
-    join ORDER_ITEMS oi on oi.ORDER_ITEM_PKID = fi.FACTORY_INVENTORY_ITEM_FKID
-    join ORDERS o on o.ORDER_PKID = fi.FACTORY_INVENTORY_ORDER_FKID
-    join ITEMS i on i.ITEMS_PKID = oi.ORDER_ITEM_ITEM_FKID
-    left join ADDITIONAL_SERVICE ias on ias.ADDITIONAL_SERVICE_PKID = oi.ORDER_ITEM_ADDITIONAL_REQUEST_FKID
-    join STORES s on s.STORE_PKID = fi.FACTORY_INVENTORY_OUTLET_FKID
-    where FACTORY_INVENTORY_RECEIVED_FKID = '${obj.OutletOrFactoryID}' and  [FACTORY_INVENTORY_FACTORY_FKID] = '${obj.FactoryID}' and FACTORY_INVENTORY_STATUS = 1 
-    `;
+    if (obj.OutletOrFactoryID === "-") {
+      MyQuery = `select fi.*, o.ORDER_ORDER_NUMBER, o.ORDER_DATE, o.ORDER_DUE_DATE, oi.ORDER_ITEM_NUMBER, i.ITEMS_NAME, ias.ADDITIONAL_SERVICE_NAME, s.STORE_NAME, s.STORE_CODE, s.STORE_SHORT_CODE,
+      (select sum(cast([ORDER_ITEM_QUANTITY] as int)) from [dbo].[ORDER_ITEMS] where [ORDER_ITEM_PKID] = oi.ORDER_ITEM_PKID) as TotalQuantity,
+      (select sum(cast([ORDER_ITEM_COUNT] as int)) from [dbo].[ORDER_ITEMS] where [ORDER_ITEM_PKID] = oi.ORDER_ITEM_PKID) as TotalCount
+      from FACTORY_INVENTORY fi
+      join ORDER_ITEMS oi on oi.ORDER_ITEM_PKID = fi.FACTORY_INVENTORY_ITEM_FKID
+      join ORDERS o on o.ORDER_PKID = fi.FACTORY_INVENTORY_ORDER_FKID
+      join ITEMS i on i.ITEMS_PKID = oi.ORDER_ITEM_ITEM_FKID
+      left join ADDITIONAL_SERVICE ias on ias.ADDITIONAL_SERVICE_PKID = oi.ORDER_ITEM_ADDITIONAL_REQUEST_FKID
+      join STORES s on s.STORE_PKID = fi.FACTORY_INVENTORY_OUTLET_FKID
+      where [FACTORY_INVENTORY_FACTORY_FKID] = '${obj.FactoryID}' and FACTORY_INVENTORY_RECEIVED_FROM = '${obj.Factory_Outlet_Type}' and FACTORY_INVENTORY_STATUS = 1 `;
+    } else {
+      MyQuery = `select fi.*, o.ORDER_ORDER_NUMBER, o.ORDER_DATE, o.ORDER_DUE_DATE, oi.ORDER_ITEM_NUMBER, i.ITEMS_NAME, ias.ADDITIONAL_SERVICE_NAME, s.STORE_NAME, s.STORE_CODE, s.STORE_SHORT_CODE,
+      (select sum(cast([ORDER_ITEM_QUANTITY] as int)) from [dbo].[ORDER_ITEMS] where [ORDER_ITEM_PKID] = oi.ORDER_ITEM_PKID) as TotalQuantity
+      from FACTORY_INVENTORY fi
+      join ORDER_ITEMS oi on oi.ORDER_ITEM_PKID = fi.FACTORY_INVENTORY_ITEM_FKID
+      join ORDERS o on o.ORDER_PKID = fi.FACTORY_INVENTORY_ORDER_FKID
+      join ITEMS i on i.ITEMS_PKID = oi.ORDER_ITEM_ITEM_FKID
+      left join ADDITIONAL_SERVICE ias on ias.ADDITIONAL_SERVICE_PKID = oi.ORDER_ITEM_ADDITIONAL_REQUEST_FKID
+      join STORES s on s.STORE_PKID = fi.FACTORY_INVENTORY_OUTLET_FKID
+      where FACTORY_INVENTORY_RECEIVED_FKID = '${obj.OutletOrFactoryID}' and FACTORY_INVENTORY_RECEIVED_FROM = '${obj.Factory_Outlet_Type}' and  [FACTORY_INVENTORY_FACTORY_FKID] = '${obj.FactoryID}' and FACTORY_INVENTORY_STATUS = 1 `;
+    }
     if (
       obj.Factory_Outlet_Type == "-" &&
       obj.Month == "-" &&
@@ -1016,6 +1064,7 @@ async function CurrentFactoryInventoryFilter(obj) {
           );
           var obj = {
             TotalQuantity: result1.recordsets[0][i].TotalQuantity,
+            TotalCount: result1.recordsets[0][i].TotalCount,
             FACTORY_INVENTORY_PKID:
               result1.recordsets[0][i].FACTORY_INVENTORY_PKID,
             FACTORY_INVENTORY_FACTORY_FKID:
@@ -1063,6 +1112,7 @@ async function CurrentFactoryInventoryFilter(obj) {
           );
           var obj = {
             TotalQuantity: result1.recordsets[0][i].TotalQuantity,
+            TotalCount: result1.recordsets[0][i].TotalCount,
             FACTORY_INVENTORY_PKID:
               result1.recordsets[0][i].FACTORY_INVENTORY_PKID,
             FACTORY_INVENTORY_FACTORY_FKID:
@@ -1118,12 +1168,10 @@ async function CurrentFactoryInventoryFilter(obj) {
         MyQuery += ` and (FACTORY_INVENTORY_DATE between '${obj.FromDate}' and '${obj.ToDate}')`;
       }
       MyQuery += ` order by FACTORY_INVENTORY_PKID desc`;
+      console.log(MyQuery)
       var result4 = await pool.request().query(MyQuery);
       for (var i = 0; i < result4.recordsets[0].length; i++) {
-        console.log("here ");
-        console.log(result4);
-        console.log(typeee);
-        if (typeee === "Outlet") {
+        if (typeee === "Outlet" && result4.recordsets[0][i].FACTORY_INVENTORY_RECEIVED_FROM == "Outlet") {
           console.log("inside if");
           var result2 = await pool.request().query(
             `select [FACTORY_DC_DATE], [FACTORY_DC_NUMBER], [FACTORY_DC_QR], [STORE_NAME]
@@ -1133,6 +1181,7 @@ async function CurrentFactoryInventoryFilter(obj) {
           );
           var obj = {
             TotalQuantity: result4.recordsets[0][i].TotalQuantity,
+            TotalCount: result4.recordsets[0][i].TotalCount,
             FACTORY_INVENTORY_PKID:
               result4.recordsets[0][i].FACTORY_INVENTORY_PKID,
             FACTORY_INVENTORY_FACTORY_FKID:
@@ -1181,6 +1230,7 @@ async function CurrentFactoryInventoryFilter(obj) {
           );
           var obj = {
             TotalQuantity: result4.recordsets[0][i].TotalQuantity,
+            TotalCount: result4.recordsets[0][i].TotalCount,
             FACTORY_INVENTORY_PKID:
               result4.recordsets[0][i].FACTORY_INVENTORY_PKID,
             FACTORY_INVENTORY_FACTORY_FKID:
@@ -1530,9 +1580,20 @@ async function ReturnToOutletOrderList(Pkid) {
     var result1 = await pool.request().query(
       `select FACTORY_TO_OUTLET_DC_QR,FACTORY_TO_OUTLET_DC_NUMBER,FACTORY_TO_OUTLET_DC_DATE,FACTORY_TO_OUTLET_DC_ITEMS_BAGS,ORDERS.*,SERVICE_CATEGORY_NAME,SERVICE_TYPE_NAME,SERVICE_CATEGORY_HSN,STORE_STAFF_NAME,SERVICE_CATEGORY_CGST,SERVICE_CATEGORY_SGST,
       (select sum(cast([ORDER_ITEM_QUANTITY] as int)) from [dbo].[ORDER_ITEMS] where [ORDER_ITEM_ORDER_FKID] = [ORDER_PKID]) TotalQuantity,
+      (select sum(cast([ORDER_ITEM_COUNT] as int)) from [dbo].[ORDER_ITEMS] where [ORDER_ITEM_ORDER_FKID] = [ORDER_PKID]) TotalCount,
       STORES.*,FACTORY_NAME,FACTORY_CODE,ROUTE_NAME,ROUTE_CODE,
       [CUSTOMER_PKID], [CUSTOMER_NAME], [CUSTOMER_CONTACT_NUMBER], [CUSTOMER_GST_TYPE], [CUSTOMER_EMAIL], [CUSTOMER_ADDRESS],[CUSTOMER_TYPE_NAME],CUSTOMER_GST_NUMBER,
-      COUPONS.*, cast((case when DATEDIFF(day, ORDER_DATE, getdate()) > 3 then 0 else 1 end) as bit) as IsEditable
+      case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then CUSTOMER_COUPON.CUSTOMER_COUPON_PKID else COUPONS.COUPONS_PKID end as COUPONS_PKID, 
+	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then CUSTOMER_COUPON.CUSTOMER_COUPON_NAME else COUPONS.COUPONS_NAME end as COUPONS_NAME, 
+	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then 'CustomerBasedCoupon' else (case when COUPONS.COUPONS_ITEM_BASED = 0 then 'OrderBasedCoupon' else  'ItemBasedCoupon' end) end as COUPON_TYPE, 
+	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then CUSTOMER_COUPON.CUSTOMER_COUPON_TYPE else COUPONS.COUPONS_VALIDITY end as COUPONS_VALIDITY, 
+	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then '-' else cast(COUPONS.COUPONS_VALIDITY_DATE as nvarchar(max)) end as COUPONS_VALIDITY_DATE, 
+	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then CUSTOMER_COUPON.CUSTOMER_COUPON_CODE else COUPONS.COUPONS_CODE end as COUPONS_CODE, 
+	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then CUSTOMER_COUPON.CUSTOMER_COUPON_PERCENT_OR_PRICE else COUPONS.COUPONS_PRICE_OR_PERCENTAGE end as COUPONS_PRICE_OR_PERCENTAGE, 
+	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then CUSTOMER_COUPON.CUSTOMER_COUPON_DISCOUNT else COUPONS.COUPONS_DISCOUNT end as COUPONS_DISCOUNT, 
+	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then CUSTOMER_COUPON.CUSTOMER_COUPON_ACTIVE else COUPONS.COUPONS_ACTIVE end as COUPONS_ACTIVE, 
+	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then 0 else COUPONS.COUPONS_ITEM_BASED end as COUPONS_ITEM_BASED, 
+	cast((case when DATEDIFF(day, ORDER_DATE, getdate()) > 2 then 0 else 1 end) as bit) as IsEditable
       from FACTORY_TO_OUTLET_DC_ITEMS
       join FACTORY_TO_OUTLET_DC on FACTORY_TO_OUTLET_DC_PKID = FACTORY_TO_OUTLET_DC_ITEMS_PRIMARY_FKID
       join ORDERS on ORDER_PKID = FACTORY_TO_OUTLET_DC_ITEMS_ORDER_FKID
@@ -1545,6 +1606,7 @@ async function ReturnToOutletOrderList(Pkid) {
       join [dbo].[CUSTOMERS] on [CUSTOMER_PKID] = [ORDER_CUSTOMER_FKID]
       join [dbo].[CUSTOMER_TYPE] on [CUSTOMER_TYPE_PKID] = [CUSTOMER_TYPE_FKID]
       left join COUPONS on [COUPONS_PKID] = [ORDER_COUPON_FKID]
+      left join CUSTOMER_COUPON on CUSTOMER_COUPON_PKID = [ORDER_COUPON_FKID]
       where FACTORY_TO_OUTLET_DC_ITEMS_PRIMARY_FKID = '${Pkid}'
       order by ORDER_PKID desc`
     );
@@ -1631,13 +1693,13 @@ async function GetInventoryForReturnToFactoryBulk(obj) {
 
     for (var s = 0; s < obj.OutletDetails.length; s++) {
       let result = await pool.request()
-        .query(`select distinct ORDER_ITEM_PKID, [ORDER_DUE_DATE],[ITEMS_NAME],[ORDER_ITEM_NUMBER],[STORE_NAME]
+        .query(`select distinct ORDER_ITEM_PKID, [ORDER_DUE_DATE],[ITEMS_NAME],[ORDER_ITEM_NUMBER],[STORE_NAME],ORDER_ITEM_QUANTITY,ORDER_ITEM_COUNT
       from [dbo].[FACTORY_INVENTORY] 
       join [dbo].[ORDERS] on [ORDER_PKID] = [FACTORY_INVENTORY_ORDER_FKID]
       join [dbo].[ORDER_ITEMS] on [ORDER_ITEM_PKID] = [FACTORY_INVENTORY_ITEM_FKID]
       join [dbo].[ITEMS] on [ITEMS_PKID] = ORDER_ITEM_ITEM_FKID
       join [dbo].[STORES] on [STORE_PKID] = [FACTORY_INVENTORY_OUTLET_FKID]
-      where [FACTORY_INVENTORY_OUTLET_FKID] = '${obj.OutletDetails[s].value}' and [FACTORY_INVENTORY_DATE] = '${obj.Date}' and FACTORY_INVENTORY_FACTORY_FKID = '${obj.FactoryID}'`);
+      where [FACTORY_INVENTORY_OUTLET_FKID] = '${obj.OutletDetails[s].value}' and [FACTORY_INVENTORY_DATE] = '${obj.Date}' and FACTORY_INVENTORY_FACTORY_FKID = '${obj.FactoryID}' and FACTORY_INVENTORY_STATUS = 1`);
       if (result.recordsets[0].length > 0) {
         for (var j = 0; j < result.recordsets[0].length; j++) {
           var obj1 = {
@@ -1646,6 +1708,8 @@ async function GetInventoryForReturnToFactoryBulk(obj) {
             ITEMS_NAME: result.recordsets[0][j].ITEMS_NAME,
             ORDER_ITEM_NUMBER: result.recordsets[0][j].ORDER_ITEM_NUMBER,
             STORE_NAME: result.recordsets[0][j].STORE_NAME,
+            ORDER_ITEM_QUANTITY: result.recordsets[0][j].ORDER_ITEM_QUANTITY,
+            ORDER_ITEM_COUNT: result.recordsets[0][j].ORDER_ITEM_COUNT,
           };
           arr.push(obj1);
         }
@@ -1662,13 +1726,13 @@ async function GetItemDetailsByItemNumber(obj) {
     let pool = await sql.connect(config);
 
     let result = await pool.request()
-      .query(`select distinct ORDER_ITEM_PKID, [ORDER_DUE_DATE],[ITEMS_NAME],[ORDER_ITEM_NUMBER],[STORE_NAME]
+      .query(`select distinct ORDER_ITEM_PKID, [ORDER_DUE_DATE],[ITEMS_NAME],[ORDER_ITEM_NUMBER],[STORE_NAME],ORDER_ITEM_QUANTITY,ORDER_ITEM_COUNT
       from [dbo].[FACTORY_INVENTORY]
       join [dbo].[ORDERS] on [ORDER_PKID] = [FACTORY_INVENTORY_ORDER_FKID]
       join [dbo].[ORDER_ITEMS] on [ORDER_ITEM_PKID] = [FACTORY_INVENTORY_ITEM_FKID]
       join [dbo].[ITEMS] on [ITEMS_PKID] = ORDER_ITEM_ITEM_FKID
       join [dbo].[STORES] on [STORE_PKID] = [FACTORY_INVENTORY_OUTLET_FKID]
-      where [ORDER_ITEM_NUMBER] = '${obj.ItemNumber}' and FACTORY_INVENTORY_FACTORY_FKID = '${obj.FactoryID}'`);
+      where [ORDER_ITEM_NUMBER] = '${obj.ItemNumber}' and FACTORY_INVENTORY_FACTORY_FKID = '${obj.FactoryID}' and FACTORY_INVENTORY_STATUS = 1`);
 
     return result.recordsets[0];
   } catch (error) {
@@ -1926,7 +1990,7 @@ async function ReturnedToFactoryItemList(Pkid) {
     let pool = await sql.connect(config);
 
     var result1 = await pool.request().query(
-      `select [FACTORY_TO_FACTORY_DC_TOTAL_BAGS], [ITEMS_NAME], [ORDER_ITEM_QUANTITY], [ORDER_ITEM_NUMBER], [ORDER_DATE], [ORDER_DUE_DATE], [CUSTOMER_NAME], CUSTOMER_TYPE_NAME
+      `select [FACTORY_TO_FACTORY_DC_TOTAL_BAGS], [ITEMS_NAME], [ORDER_ITEM_QUANTITY], [ORDER_ITEM_COUNT], [ORDER_ITEM_NUMBER], [ORDER_DATE], [ORDER_DUE_DATE], [CUSTOMER_NAME], CUSTOMER_TYPE_NAME
       from FACTORY_TO_FACTORY_DC_ITEMS
       join [dbo].[FACTORY_TO_FACTORY_DC] on [FACTORY_TO_FACTORY_DC_PKID] = '${Pkid}'
       join ORDER_ITEMS on ORDER_ITEM_PKID = FACTORY_TO_FACTORY_DC_ITEMS_ITEMS_FKID

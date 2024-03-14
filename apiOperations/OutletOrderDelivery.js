@@ -19,35 +19,47 @@ async function SendOTP(OutletID, PhoneNumber) {
       );
 
     if (result.rowsAffected > 0) {
-      var result2 = await pool
-        .request()
-        .query(
-          `select * from CUSTOMER_OTP where CUSTOMER_OTP_OUTLET_FKID = '${OutletID}' and CUSTOMER_OTP_PHONE = '${PhoneNumber}' and CUSTOMER_OTP_ACTIVE = 1`
-        );
+      var CheckOrders = await pool.request().query(
+        `select count(ORDER_PKID) as OrderCount
+        from [dbo].[ORDERS] 
+        join [dbo].[CUSTOMERS] on [CUSTOMER_PKID] = [ORDER_CUSTOMER_FKID]
+        join [dbo].[STORE_INVENTORY] on [STORE_INVENTORY_ORDER_FKID] = [ORDER_PKID]
+        where [STORE_INVENTORY_STATUS] = 1 and [CUSTOMER_CONTACT_NUMBER] = '${PhoneNumber}'`
+      );
 
-      if (result2.rowsAffected > 0) {
-        var result1 = await pool
+      if (CheckOrders.recordsets[0][0].OrderCount > 0) {
+        var result2 = await pool
           .request()
-          .input("CUSTOMER_OTP_OUTLET_FKID", OutletID)
-          .input("CUSTOMER_OTP_PHONE", PhoneNumber)
-          .input("CUSTOMER_OTP", Math.floor(1000 + Math.random() * 9000))
           .query(
-            `update CUSTOMER_OTP set CUSTOMER_OTP = @CUSTOMER_OTP where CUSTOMER_OTP_OUTLET_FKID = @CUSTOMER_OTP_OUTLET_FKID and CUSTOMER_OTP_PHONE = @CUSTOMER_OTP_PHONE`
+            `select * from CUSTOMER_OTP where CUSTOMER_OTP_OUTLET_FKID = '${OutletID}' and CUSTOMER_OTP_PHONE = '${PhoneNumber}' and CUSTOMER_OTP_ACTIVE = 1`
           );
 
-        return true;
+        if (result2.rowsAffected > 0) {
+          var result1 = await pool
+            .request()
+            .input("CUSTOMER_OTP_OUTLET_FKID", OutletID)
+            .input("CUSTOMER_OTP_PHONE", PhoneNumber)
+            .input("CUSTOMER_OTP", Math.floor(1000 + Math.random() * 9000))
+            .query(
+              `update CUSTOMER_OTP set CUSTOMER_OTP = @CUSTOMER_OTP where CUSTOMER_OTP_OUTLET_FKID = @CUSTOMER_OTP_OUTLET_FKID and CUSTOMER_OTP_PHONE = @CUSTOMER_OTP_PHONE and CUSTOMER_OTP_ACTIVE = 1`
+            );
+
+          return true;
+        } else {
+          var result1 = await pool
+            .request()
+            .input("CUSTOMER_OTP_OUTLET_FKID", OutletID)
+            .input("CUSTOMER_OTP_PHONE", PhoneNumber)
+            .input("CUSTOMER_OTP", Math.floor(1000 + Math.random() * 9000))
+            .input("CUSTOMER_OTP_ACTIVE", "1")
+            .query(
+              `insert into CUSTOMER_OTP(CUSTOMER_OTP_OUTLET_FKID,CUSTOMER_OTP_PHONE,CUSTOMER_OTP,CUSTOMER_OTP_ACTIVE) values(@CUSTOMER_OTP_OUTLET_FKID,@CUSTOMER_OTP_PHONE,@CUSTOMER_OTP,@CUSTOMER_OTP_ACTIVE)`
+            );
+
+          return true;
+        }
       } else {
-        var result1 = await pool
-          .request()
-          .input("CUSTOMER_OTP_OUTLET_FKID", OutletID)
-          .input("CUSTOMER_OTP_PHONE", PhoneNumber)
-          .input("CUSTOMER_OTP", Math.floor(1000 + Math.random() * 9000))
-          .input("CUSTOMER_OTP_ACTIVE", "1")
-          .query(
-            `insert into CUSTOMER_OTP(CUSTOMER_OTP_OUTLET_FKID,CUSTOMER_OTP_PHONE,CUSTOMER_OTP,CUSTOMER_OTP_ACTIVE) values(@CUSTOMER_OTP_OUTLET_FKID,@CUSTOMER_OTP_PHONE,@CUSTOMER_OTP,@CUSTOMER_OTP_ACTIVE)`
-          );
-
-        return true;
+        return "0";
       }
     } else {
       return false;
@@ -138,7 +150,7 @@ async function GetOrdersListByPhoneNumber(PhoneNumber) {
     let pool = await sql.connect(config);
 
     var result = await pool.request().query(
-      `select [ORDER_PKID],[ORDER_ORDER_NUMBER],[ORDER_BAD_DEBITS], [ORDER_INVOICE_NUMBER], [ORDER_DATE], [ORDER_DUE_DATE], [CUSTOMER_NAME], [ORDER_GRAND_TOTAL_AMOUNT], 0 as checked
+      `select distinct [ORDER_PKID],[ORDER_ORDER_NUMBER],[ORDER_BAD_DEBITS], [ORDER_INVOICE_NUMBER], [ORDER_DATE], [ORDER_DUE_DATE], [CUSTOMER_NAME], [ORDER_GRAND_TOTAL_AMOUNT], 0 as checked
 from [dbo].[ORDERS] 
 join [dbo].[CUSTOMERS] on [CUSTOMER_PKID] = [ORDER_CUSTOMER_FKID]
 join [dbo].[STORE_INVENTORY] on [STORE_INVENTORY_ORDER_FKID] = [ORDER_PKID]
@@ -215,7 +227,7 @@ async function GetOutletCollectionReport(OutletID) {
     let pool = await sql.connect(config);
 
     var result = await pool.request().query(
-      `select [ORDER_PAYMENT_CREDIT],[ORDER_PAYMENT_BAD_DEBITS],[ORDER_PAYMENT_FINAL_AMOUNT],[CUSTOMER_CONTACT_NUMBER],[ORDER_PKID], [ORDER_ORDER_NUMBER], [ORDER_DATE], [ORDER_DUE_DATE], [ORDER_GRAND_TOTAL_AMOUNT],[CUSTOMER_NAME], [ORDER_PAYMENT_DATE], [ORDER_PAYMENT_COLLECTED_AMOUNT], [ORDER_PAYMENT_MODE], [ORDER_PAYMENT_BALANCE_AMOUNT]
+      `select [ORDER_PAYMENT_CREDIT],[ORDER_PAYMENT_BAD_DEBITS],[ORDER_PAYMENT_FINAL_AMOUNT],[CUSTOMER_CONTACT_NUMBER],[ORDER_PKID], [ORDER_ORDER_NUMBER], [ORDER_DATE], [ORDER_DUE_DATE], [ORDER_GRAND_TOTAL_AMOUNT],[CUSTOMER_NAME], [ORDER_PAYMENT_DATE], [ORDER_PAYMENT_COLLECTED_AMOUNT], [ORDER_PAYMENT_MODE], [ORDER_PAYMENT_BALANCE_AMOUNT],(select count(*) from [dbo].[ORDER_PAYMENT_ORDER_LIST] where ORDER_PAYMENT_ORDER_LIST_PAYMENT_FKID = ORDER_PAYMENT_PKID) OrderCount
       from [dbo].[ORDER_PAYMENT]
       join [dbo].[ORDER_PAYMENT_ORDER_LIST] on [ORDER_PAYMENT_ORDER_LIST_PAYMENT_FKID] = [ORDER_PAYMENT_PKID]
       join [dbo].[ORDERS] on [ORDER_PKID] = [ORDER_PAYMENT_ORDER_LIST_ORDER_FKID]
@@ -235,7 +247,7 @@ async function GetOutletCollectionReportFilter(obj) {
 
     let pool = await sql.connect(config);
 
-    var MyQuery = `select [ORDER_PAYMENT_CREDIT],[ORDER_PAYMENT_BAD_DEBITS],[ORDER_PAYMENT_FINAL_AMOUNT],[CUSTOMER_CONTACT_NUMBER],[ORDER_PKID], [ORDER_ORDER_NUMBER], [ORDER_DATE], [ORDER_DUE_DATE], [ORDER_GRAND_TOTAL_AMOUNT],[CUSTOMER_NAME], [ORDER_PAYMENT_DATE], [ORDER_PAYMENT_COLLECTED_AMOUNT], [ORDER_PAYMENT_MODE], [ORDER_PAYMENT_BALANCE_AMOUNT]
+    var MyQuery = `select [ORDER_PAYMENT_CREDIT],[ORDER_PAYMENT_BAD_DEBITS],[ORDER_PAYMENT_FINAL_AMOUNT],[CUSTOMER_CONTACT_NUMBER],[ORDER_PKID], [ORDER_ORDER_NUMBER], [ORDER_DATE], [ORDER_DUE_DATE], [ORDER_GRAND_TOTAL_AMOUNT],[CUSTOMER_NAME], [ORDER_PAYMENT_DATE], [ORDER_PAYMENT_COLLECTED_AMOUNT], [ORDER_PAYMENT_MODE], [ORDER_PAYMENT_BALANCE_AMOUNT],(select count(*) from [dbo].[ORDER_PAYMENT_ORDER_LIST] where ORDER_PAYMENT_ORDER_LIST_PAYMENT_FKID = ORDER_PAYMENT_PKID) OrderCount
     from [dbo].[ORDER_PAYMENT]
     join [dbo].[ORDER_PAYMENT_ORDER_LIST] on [ORDER_PAYMENT_ORDER_LIST_PAYMENT_FKID] = [ORDER_PAYMENT_PKID]
     join [dbo].[ORDERS] on [ORDER_PKID] = [ORDER_PAYMENT_ORDER_LIST_ORDER_FKID]

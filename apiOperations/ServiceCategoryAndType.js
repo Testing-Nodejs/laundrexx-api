@@ -243,6 +243,8 @@ async function getAllServiceType() {
           CATEGORY_LIST: result.recordsets[0][i].CATEGORY_LIST,
           SERVICE_TYPE_SURCHARGE:
             result.recordsets[0][i].SERVICE_TYPE_SURCHARGE,
+          SERVICE_TYPE_NEW_CUST_COUPON:
+            result.recordsets[0][i].SERVICE_TYPE_NEW_CUST_COUPON,
           SERVICE_TYPE_CATEGORY: result1.recordsets[0],
         };
 
