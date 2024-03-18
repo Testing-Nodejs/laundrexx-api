@@ -25,64 +25,74 @@ async function AddCustomer(obj) {
     var res = false;
     var pool = await sql.connect(config);
 
-    var result = await pool
+    var Exist = await pool
       .request()
-      .input("CUSTOMER_OUTLET_FKID", obj.CUSTOMER_OUTLET_FKID)
-      .input("CUSTOMER_NAME", obj.CUSTOMER_NAME)
-      .input("CUSTOMER_CONTACT_NUMBER", obj.CUSTOMER_CONTACT_NUMBER)
-      .input("CUSTOMER_ALT_NUMBER", obj.CUSTOMER_ALT_NUMBER)
-      .input("CUSTOMER_GST_TYPE", obj.CUSTOMER_GST_TYPE)
-      .input("CUSTOMER_EMAIL", obj.CUSTOMER_EMAIL)
-      .input("CUSTOMER_ADDRESS", obj.CUSTOMER_ADDRESS)
-      .input("CUSTOMER_GST_NUMBER", obj.CUSTOMER_GST_NUMBER)
-      .input("CUSTOMER_TYPE_FKID", obj.CUSTOMER_TYPE_FKID)
-      .input("CUSTOMER_HOW_HEAR_US", obj.CUSTOMER_HOW_HEAR_US)
       .query(
-        `insert into CUSTOMERS(CUSTOMER_OUTLET_FKID, CUSTOMER_NAME,CUSTOMER_CONTACT_NUMBER,CUSTOMER_ALT_NUMBER,CUSTOMER_GST_TYPE,CUSTOMER_EMAIL,CUSTOMER_ADDRESS,CUSTOMER_GST_NUMBER,CUSTOMER_TYPE_FKID,CUSTOMER_HOW_HEAR_US,CUSTOMER_CREATED_DATE) values(@CUSTOMER_OUTLET_FKID, @CUSTOMER_NAME,@CUSTOMER_CONTACT_NUMBER,@CUSTOMER_ALT_NUMBER,@CUSTOMER_GST_TYPE,@CUSTOMER_EMAIL,@CUSTOMER_ADDRESS,@CUSTOMER_GST_NUMBER,@CUSTOMER_TYPE_FKID,@CUSTOMER_HOW_HEAR_US,getdate())`
+        `select * from CUSTOMERS where CUSTOMER_OUTLET_FKID = '${obj.CUSTOMER_OUTLET_FKID}' and CUSTOMER_CONTACT_NUMBER = '${obj.CUSTOMER_CONTACT_NUMBER}'`
       );
 
-    if (result.rowsAffected > 0) {
-      var MaxCust = await pool
+    if (Exist.recordsets[0].length > 0) {
+      var result = await pool
         .request()
-        .query(`select max(CUSTOMER_PKID) as CUSTOMER_PKID from CUSTOMERS`);
-
-      var MainCoupon = await pool
-        .request()
-        .input("CUSTOMER_COUPON_NAME", "New Customer")
-        .input("CUSTOMER_COUPON_CODE", GenerateCouponCode(7))
-        .input("CUSTOMER_COUPON_PERCENT_OR_PRICE", "Percentage")
-        .input("CUSTOMER_COUPON_DISCOUNT", "50")
-        .input("CUSTOMER_COUPON_TYPE", "OneTimeUse")
-        .input("CUSTOMER_COUPON_ACTIVE", "1")
+        .input("CUSTOMER_OUTLET_FKID", obj.CUSTOMER_OUTLET_FKID)
+        .input("CUSTOMER_NAME", obj.CUSTOMER_NAME)
+        .input("CUSTOMER_CONTACT_NUMBER", obj.CUSTOMER_CONTACT_NUMBER)
+        .input("CUSTOMER_ALT_NUMBER", obj.CUSTOMER_ALT_NUMBER)
+        .input("CUSTOMER_GST_TYPE", obj.CUSTOMER_GST_TYPE)
+        .input("CUSTOMER_EMAIL", obj.CUSTOMER_EMAIL)
+        .input("CUSTOMER_ADDRESS", obj.CUSTOMER_ADDRESS)
+        .input("CUSTOMER_GST_NUMBER", obj.CUSTOMER_GST_NUMBER)
+        .input("CUSTOMER_TYPE_FKID", obj.CUSTOMER_TYPE_FKID)
+        .input("CUSTOMER_HOW_HEAR_US", obj.CUSTOMER_HOW_HEAR_US)
         .query(
-          `insert into CUSTOMER_COUPON(CUSTOMER_COUPON_NAME, CUSTOMER_COUPON_CODE,CUSTOMER_COUPON_PERCENT_OR_PRICE,CUSTOMER_COUPON_DISCOUNT,CUSTOMER_COUPON_TYPE,CUSTOMER_COUPON_ACTIVE) values(@CUSTOMER_COUPON_NAME, @CUSTOMER_COUPON_CODE,@CUSTOMER_COUPON_PERCENT_OR_PRICE,@CUSTOMER_COUPON_DISCOUNT,@CUSTOMER_COUPON_TYPE,@CUSTOMER_COUPON_ACTIVE)`
+          `insert into CUSTOMERS(CUSTOMER_OUTLET_FKID, CUSTOMER_NAME,CUSTOMER_CONTACT_NUMBER,CUSTOMER_ALT_NUMBER,CUSTOMER_GST_TYPE,CUSTOMER_EMAIL,CUSTOMER_ADDRESS,CUSTOMER_GST_NUMBER,CUSTOMER_TYPE_FKID,CUSTOMER_HOW_HEAR_US,CUSTOMER_CREATED_DATE) values(@CUSTOMER_OUTLET_FKID, @CUSTOMER_NAME,@CUSTOMER_CONTACT_NUMBER,@CUSTOMER_ALT_NUMBER,@CUSTOMER_GST_TYPE,@CUSTOMER_EMAIL,@CUSTOMER_ADDRESS,@CUSTOMER_GST_NUMBER,@CUSTOMER_TYPE_FKID,@CUSTOMER_HOW_HEAR_US,getdate())`
         );
 
-      if (MainCoupon.rowsAffected > 0) {
-        var MaxCoupon = await pool
+      if (result.rowsAffected > 0) {
+        var MaxCust = await pool
           .request()
+          .query(`select max(CUSTOMER_PKID) as CUSTOMER_PKID from CUSTOMERS`);
+
+        var MainCoupon = await pool
+          .request()
+          .input("CUSTOMER_COUPON_NAME", "New Customer")
+          .input("CUSTOMER_COUPON_CODE", GenerateCouponCode(7))
+          .input("CUSTOMER_COUPON_PERCENT_OR_PRICE", "Percentage")
+          .input("CUSTOMER_COUPON_DISCOUNT", "50")
+          .input("CUSTOMER_COUPON_TYPE", "OneTimeUse")
+          .input("CUSTOMER_COUPON_ACTIVE", "1")
           .query(
-            `select max(CUSTOMER_COUPON_PKID) as CUSTOMER_COUPON_PKID from CUSTOMER_COUPON`
+            `insert into CUSTOMER_COUPON(CUSTOMER_COUPON_NAME, CUSTOMER_COUPON_CODE,CUSTOMER_COUPON_PERCENT_OR_PRICE,CUSTOMER_COUPON_DISCOUNT,CUSTOMER_COUPON_TYPE,CUSTOMER_COUPON_ACTIVE) values(@CUSTOMER_COUPON_NAME, @CUSTOMER_COUPON_CODE,@CUSTOMER_COUPON_PERCENT_OR_PRICE,@CUSTOMER_COUPON_DISCOUNT,@CUSTOMER_COUPON_TYPE,@CUSTOMER_COUPON_ACTIVE)`
           );
 
-        var CustomerList = await pool
-          .request()
-          .input(
-            "CUSTOMER_COUPON_CUST_LIST_PRIMARY_FKID",
-            MaxCoupon.recordsets[0][0].CUSTOMER_COUPON_PKID
-          )
-          .input(
-            "CUSTOMER_COUPON_CUST_LIST_FKID",
-            MaxCust.recordsets[0][0].CUSTOMER_PKID
-          )
-          .query(
-            `insert into CUSTOMER_COUPON_CUST_LIST(CUSTOMER_COUPON_CUST_LIST_PRIMARY_FKID, CUSTOMER_COUPON_CUST_LIST_FKID) values(@CUSTOMER_COUPON_CUST_LIST_PRIMARY_FKID, @CUSTOMER_COUPON_CUST_LIST_FKID)`
-          );
+        if (MainCoupon.rowsAffected > 0) {
+          var MaxCoupon = await pool
+            .request()
+            .query(
+              `select max(CUSTOMER_COUPON_PKID) as CUSTOMER_COUPON_PKID from CUSTOMER_COUPON`
+            );
+
+          var CustomerList = await pool
+            .request()
+            .input(
+              "CUSTOMER_COUPON_CUST_LIST_PRIMARY_FKID",
+              MaxCoupon.recordsets[0][0].CUSTOMER_COUPON_PKID
+            )
+            .input(
+              "CUSTOMER_COUPON_CUST_LIST_FKID",
+              MaxCust.recordsets[0][0].CUSTOMER_PKID
+            )
+            .query(
+              `insert into CUSTOMER_COUPON_CUST_LIST(CUSTOMER_COUPON_CUST_LIST_PRIMARY_FKID, CUSTOMER_COUPON_CUST_LIST_FKID) values(@CUSTOMER_COUPON_CUST_LIST_PRIMARY_FKID, @CUSTOMER_COUPON_CUST_LIST_FKID)`
+            );
+        }
+
+        res = true;
+      } else {
+        res = false;
       }
-
-      res = true;
     } else {
-      res = false;
+      res = 0;
     }
     return res;
   } catch (error) {
@@ -143,9 +153,7 @@ async function GetAllCustomers() {
 async function GetNewCustomerCoupon(CustomerID) {
   try {
     let pool = await sql.connect(config);
-    var result = await pool
-      .request()
-      .query(`select [dbo].[CUSTOMER_COUPON].*
+    var result = await pool.request().query(`select [dbo].[CUSTOMER_COUPON].*
       from [dbo].[CUSTOMER_COUPON_CUST_LIST]
       join [dbo].[CUSTOMER_COUPON] on [CUSTOMER_COUPON_PKID] = [CUSTOMER_COUPON_CUST_LIST_PRIMARY_FKID]
       where [CUSTOMER_COUPON_CUST_LIST_FKID] = '${CustomerID}' and [CUSTOMER_COUPON_NAME] = 'New Customer'`);
@@ -330,6 +338,7 @@ async function GetAllCustomersWithFilter(obj) {
     if (
       obj.Outlet == "-" &&
       obj.Month == "-" &&
+      obj.Year == "-" &&
       obj.FromDate == "-" &&
       obj.ToDate == "-"
     ) {
@@ -339,6 +348,10 @@ async function GetAllCustomersWithFilter(obj) {
       if (obj.Outlet == "-") {
       } else {
         MyQuery += `and CUSTOMER_OUTLET_FKID = '${obj.Outlet}'`;
+      }
+      if (obj.Year == "-") {
+      } else {
+        MyQuery += `and year(CUSTOMER_CREATED_DATE) = '${obj.Year}'`;
       }
       if (obj.Month == "-") {
       } else {

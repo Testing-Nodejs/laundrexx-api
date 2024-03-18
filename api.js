@@ -5,7 +5,7 @@
  * @Last Modified time: 2022-08-18 15:28:27
  */
 "use strict";
-require('dotenv').config()
+require("dotenv").config();
 var express = require("express");
 var bodyParser = require("body-parser");
 var cors = require("cors");
@@ -41,6 +41,7 @@ var OutletDayClose = require("./apiOperations/OutletDayClose");
 var FactoryModule = require("./apiOperations/FactoryModule");
 var OutletIntake = require("./apiOperations/OutletIntake");
 var OutletOrderDelivery = require("./apiOperations/OutletOrderDelivery");
+var AdminServices = require("./apiOperations/AdminServices");
 
 // ----------------Zeus Routes for APP--------------------------------------
 
@@ -1391,15 +1392,18 @@ router.get(
   }
 );
 
-router.get("/CouponByOutlet/:OutletID/:CustomerID/:ServiceTypeID", async (req, res) => {
-  await Coupon.GetAllOutletCoupons(
-    req.params.OutletID,
-    req.params.CustomerID,
-    req.params.ServiceTypeID
-  ).then((data) => {
-    res.json(data);
-  });
-});
+router.get(
+  "/CouponByOutlet/:OutletID/:CustomerID/:ServiceTypeID",
+  async (req, res) => {
+    await Coupon.GetAllOutletCoupons(
+      req.params.OutletID,
+      req.params.CustomerID,
+      req.params.ServiceTypeID
+    ).then((data) => {
+      res.json(data);
+    });
+  }
+);
 
 router.get("/GetCouponItemListByCouponID/:CouponPkid", async (req, res) => {
   await Coupon.GetCouponItemListByCouponID(req.params.CouponPkid).then(
@@ -1452,6 +1456,40 @@ router.get("/AllOrders", async (req, res) => {
     res.json(data);
   });
 });
+
+router.get("/DeliveredOrders/:UserType/:UserID", async (req, res) => {
+  await OutletOrders.DeliveredOrders(
+    req.params.UserType,
+    req.params.UserID
+  ).then((data) => {
+    res.json(data);
+  });
+});
+
+router.get(
+  "/Admin_User_CurrentDayOrders/:UserType/:UserID",
+  async (req, res) => {
+    await OutletOrders.Admin_User_CurrentDayOrders(
+      req.params.UserType,
+      req.params.UserID
+    ).then((data) => {
+      res.json(data);
+    });
+  }
+);
+
+router.get(
+  "/Admin_User_CurrentDayOrdersByOutlet/:UserType/:UserID/:OutletID",
+  async (req, res) => {
+    await OutletOrders.Admin_User_CurrentDayOrdersFilter(
+      req.params.UserType,
+      req.params.UserID,
+      req.params.OutletID
+    ).then((data) => {
+      res.json(data);
+    });
+  }
+);
 
 router.get("/AllAdminDoorDeliveryOrders", async (req, res) => {
   await OutletOrders.AllAdminDoorDeliveryOrders().then((data) => {
@@ -1553,6 +1591,16 @@ router.route("/AllOrdersFilter").post(async (req, res) => {
   };
 
   await OutletOrders.GetAllOrdersWithFilters(obj).then((data) => {
+    res.status(201).json(data);
+  });
+});
+
+router.route("/DeliveredOrdersFilters").post(async (req, res) => {
+  let obj = {
+    ...req.body,
+  };
+
+  await OutletOrders.GetDeliveredOrdersWithFilters(obj).then((data) => {
     res.status(201).json(data);
   });
 });
@@ -2468,12 +2516,146 @@ router.route("/CurrentFactoryInventoryFilter").post(async (req, res) => {
   });
 });
 
+router.get("/GetB2BGSTReport", async (req, res) => {
+  await AdminServices.getB2BGstReport().then((data) => {
+    res.json(data);
+  });
+});
+
+router.route("/GetB2BGSTReportFilter").post(async (req, res) => {
+  let obj = {
+    ...req.body,
+  };
+
+  await AdminServices.getB2BGstReportFilter(obj).then((data) => {
+    res.status(201).json(data);
+  });
+});
+
+router.get("/GetB2CGSTReport", async (req, res) => {
+  await AdminServices.GetB2CGSTReport().then((data) => {
+    res.json(data);
+  });
+});
+
+router.route("/GetB2CGSTReportFilter").post(async (req, res) => {
+  let obj = {
+    ...req.body,
+  };
+
+  await AdminServices.GetB2CGSTReportFilter(obj).then((data) => {
+    res.status(201).json(data);
+  });
+});
+
+router.get("/getHSNWiseGSTReport", async (req, res) => {
+  await AdminServices.getHSNWiseGSTReport().then((data) => {
+    res.json(data);
+  });
+});
+
+router.route("/getHSNWiseGSTReportFilter").post(async (req, res) => {
+  let obj = {
+    ...req.body,
+  };
+
+  await AdminServices.getHSNWiseGSTReportFilter(obj).then((data) => {
+    res.status(201).json(data);
+  });
+});
+
+router.get("/getDocumentIssuesReport", async (req, res) => {
+  await AdminServices.getDocumentIssuesReport().then((data) => {
+    res.json(data);
+  });
+});
+
+router.route("/getDocumentIssuesReportFilter").post(async (req, res) => {
+  let obj = {
+    ...req.body,
+  };
+
+  await AdminServices.getDocumentIssuesReportFilter(obj).then((data) => {
+    res.status(201).json(data);
+  });
+});
+
+router.get("/StockReport", async (req, res) => {
+  await AdminServices.StockReport().then((data) => {
+    res.json(data);
+  });
+});
+
+router.route("/StockReportFilter").post(async (req, res) => {
+  let obj = {
+    ...req.body,
+  };
+
+  await AdminServices.StockReportFilter(obj).then((data) => {
+    res.status(201).json(data);
+  });
+});
+
+router.get("/CollectionReport", async (req, res) => {
+  await AdminServices.CollectionReport().then((data) => {
+    res.json(data);
+  });
+});
+
+router.route("/CollectionReportFilter").post(async (req, res) => {
+  let obj = {
+    ...req.body,
+  };
+
+  await AdminServices.CollectionReportFilter(obj).then((data) => {
+    res.status(201).json(data);
+  });
+});
+
+router.get("/BillingReport", async (req, res) => {
+  await AdminServices.BillingReport().then((data) => {
+    res.json(data);
+  });
+});
+
+router.route("/BillingReportFilter").post(async (req, res) => {
+  let obj = {
+    ...req.body,
+  };
+
+  await AdminServices.BillingReportFilter(obj).then((data) => {
+    res.status(201).json(data);
+  });
+});
+
+router.get("/LiveDashboard", async (req, res) => {
+  await AdminServices.LiveDashboard().then((data) => {
+    res.json(data);
+  });
+});
+
+router.get("/LiveDashboardOrders", async (req, res) => {
+  await AdminServices.LiveDashboardOrders().then((data) => {
+    res.json(data);
+  });
+});
+
+router.get("/LiveDashboardCustomer", async (req, res) => {
+  await AdminServices.LiveDashboardCustomer().then((data) => {
+    res.json(data);
+  });
+});
+
+router.get("/LiveDashboardOrderStatistic", async (req, res) => {
+  await AdminServices.LiveDashboardOrderStatistic().then((data) => {
+    res.json(data);
+  });
+});
+
 router.get("/SampleMailTest", async (req, res) => {
-  await OutletOrders.SampleMailTest(req.params.FactoryID).then(
-    (data) => {
-      res.json(data);
-    }
-  );
+  await OutletOrders.SampleMailTest(req.params.FactoryID).then((data) => {
+    res.json(data);
+  });
 });
 
 // -------END----------------------------------------------------//

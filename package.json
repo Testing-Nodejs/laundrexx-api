@@ -25,6 +25,7 @@
     "nodemailer": "^6.7.5",
     "nodemailer-smtp-transport": "^2.7.4",
     "qrcode": "^1.5.3",
+    "request": "^2.88.2",
     "tedious": "^14.2.0",
     "url": "^0.11.0"
   },

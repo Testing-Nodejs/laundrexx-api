@@ -7,6 +7,7 @@
 
 var config = require("../dbconfig");
 const sql = require("mssql");
+var request = require("request");
 
 var nodemailer = require("nodemailer");
 var smtpTransport = require("nodemailer-smtp-transport");
@@ -189,6 +190,30 @@ async function OutletConfirmIntake(DCID) {
             .query(
               `update CUSTOMERS set CUSTOMER_DELIVERY_CODE = '${DeliveryCode.recordsets[0][0].DeliveryCode}' where CUSTOMER_PKID = CUSTOMER_PKID = '${CustomerDetails.recordsets[0][z].CUSTOMER_PKID}'`
             );
+
+          var options = {
+            method: "POST",
+            url: process.env.SMSCOUNTRY_URL,
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: process.env.SMSCOUNTRY_AUTHKEY,
+            },
+            body: JSON.stringify({
+              Text: `Your order ${CustomerDetails.recordsets[0][z].ORDER_ORDER_NUMBER} is ready for pickup.Your order amount is Rs.${CustomerDetails.recordsets[0][z].ORDER_FINAL_ORDER_AMOUNT}. Please present your pickup code - ${DeliveryCode.recordsets[0][0].DeliveryCode} during collection. Thank you -Laundrexx`,
+              Number:
+                "91" +
+                CustomerDetails.recordsets[0][0].CUSTOMER_ALT_NUMBER +
+                "",
+              SenderId: "LNDREX",
+              DRNotifyUrl: "https://www.domainname.com/notifyurl",
+              DRNotifyHttpMethod: "POST",
+              Tool: "API",
+            }),
+          };
+          request(options, function (error, response) {
+            if (error) throw new Error(error);
+            console.log(response.body);
+          });
 
           var mailOptions = {
             from: process.env.EMAIL,

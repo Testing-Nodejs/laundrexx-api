@@ -7,6 +7,21 @@
 
 var config = require("../dbconfig");
 const sql = require("mssql");
+var request = require("request");
+
+var nodemailer = require("nodemailer");
+var smtpTransport = require("nodemailer-smtp-transport");
+
+var transporter = nodemailer.createTransport(
+  smtpTransport({
+    service: "gmail",
+    host: "smtp.gmail.com",
+    auth: {
+      user: process.env.EMAIL,
+      pass: process.env.PASS,
+    },
+  })
+);
 
 async function SendOTP(OutletID, PhoneNumber) {
   try {
@@ -35,26 +50,123 @@ async function SendOTP(OutletID, PhoneNumber) {
           );
 
         if (result2.rowsAffected > 0) {
+          var CustOTP1 = Math.floor(1000 + Math.random() * 9000);
           var result1 = await pool
             .request()
             .input("CUSTOMER_OTP_OUTLET_FKID", OutletID)
             .input("CUSTOMER_OTP_PHONE", PhoneNumber)
-            .input("CUSTOMER_OTP", Math.floor(1000 + Math.random() * 9000))
+            .input("CUSTOMER_OTP", CustOTP1)
             .query(
               `update CUSTOMER_OTP set CUSTOMER_OTP = @CUSTOMER_OTP where CUSTOMER_OTP_OUTLET_FKID = @CUSTOMER_OTP_OUTLET_FKID and CUSTOMER_OTP_PHONE = @CUSTOMER_OTP_PHONE and CUSTOMER_OTP_ACTIVE = 1`
             );
+          var options = {
+            method: "POST",
+            url: process.env.SMSCOUNTRY_URL,
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: process.env.SMSCOUNTRY_AUTHKEY,
+            },
+            body: JSON.stringify({
+              Text: `Dear customer, your OTP for order pickup is ${CustOTP1} . Please share this code with your Laundrexx associate to complete the verification. Thank you. -Laundrexx`,
+              Number: "91" + result.recordsets[0][0].CUSTOMER_CONTACT_NUMBER + "",
+              SenderId: "LNDREX",
+              DRNotifyUrl: "https://www.domainname.com/notifyurl",
+              DRNotifyHttpMethod: "POST",
+              Tool: "API",
+            }),
+          };
+          console.log(options)
+          request(options, function (error, response) {
+            if (error) throw new Error(error);
+            console.log(response.body);
+          });
 
+          var mailOptions = {
+            from: process.env.EMAIL,
+            to: result.recordsets[0][0].CUSTOMER_EMAIL,
+            subject: "OTP For Order Delivery!",
+            html: `<html><head>
+                    <style>
+             
+              </style></head>
+              <div style="font-family: Helvetica,Arial,sans-serif;min-width:1000px;overflow:auto;line-height:2"><div style="margin:50px auto;width:70%;padding:20px 0">
+                              <div style="border-bottom:1px solid #eee">
+                                <a href="https://laundrexx.com/" style="font-size:1.4em;color: #00466a;text-decoration:none;font-weight:600">Laundrexx Fabric Care India Pvt Ltd</a>
+                              </div>
+                              <p style="font-size: 16px;color: black;font-weight: 600;">Dear ${result.recordsets[0][0].CUSTOMER_NAME},</p>
+                              <p style="font-size: 14px;color: black;">your OTP for order pickup is <b>( ${CustOTP1} )</b>.</p>
+                              <p style="font-size: 14px;color: black;">Please share this code with your Laundrexx associate to complete the verification. Thank you. -Laundrexx.</p>
+                            </div>
+                            </html>`,
+          };
+
+          transporter.sendMail(mailOptions, function (error, info) {
+            if (error) {
+              console.log(error);
+            } else {
+              console.log("Email sent: " + info.response);
+            }
+          });
           return true;
         } else {
+          var CustOtp = Math.floor(1000 + Math.random() * 9000);
           var result1 = await pool
             .request()
             .input("CUSTOMER_OTP_OUTLET_FKID", OutletID)
             .input("CUSTOMER_OTP_PHONE", PhoneNumber)
-            .input("CUSTOMER_OTP", Math.floor(1000 + Math.random() * 9000))
+            .input("CUSTOMER_OTP", CustOtp)
             .input("CUSTOMER_OTP_ACTIVE", "1")
             .query(
               `insert into CUSTOMER_OTP(CUSTOMER_OTP_OUTLET_FKID,CUSTOMER_OTP_PHONE,CUSTOMER_OTP,CUSTOMER_OTP_ACTIVE) values(@CUSTOMER_OTP_OUTLET_FKID,@CUSTOMER_OTP_PHONE,@CUSTOMER_OTP,@CUSTOMER_OTP_ACTIVE)`
             );
+
+          var options = {
+            method: "POST",
+            url: process.env.SMSCOUNTRY_URL,
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: process.env.SMSCOUNTRY_AUTHKEY,
+            },
+            body: JSON.stringify({
+              Text: `Dear customer, your OTP for order pickup is ${CustOtp} . Please share this code with your Laundrexx associate to complete the verification. Thank you. -Laundrexx`,
+              Number: "91" + result.recordsets[0][0].CUSTOMER_CONTACT_NUMBER + "",
+              SenderId: "LNDREX",
+              DRNotifyUrl: "https://www.domainname.com/notifyurl",
+              DRNotifyHttpMethod: "POST",
+              Tool: "API",
+            }),
+          };
+          request(options, function (error, response) {
+            if (error) throw new Error(error);
+            console.log(response.body);
+          });
+
+          var mailOptions = {
+            from: process.env.EMAIL,
+            to: result.recordsets[0][0].CUSTOMER_EMAIL,
+            subject: "OTP For Order Delivery!",
+            html: `<html><head>
+                  <style>
+           
+            </style></head>
+            <div style="font-family: Helvetica,Arial,sans-serif;min-width:1000px;overflow:auto;line-height:2"><div style="margin:50px auto;width:70%;padding:20px 0">
+                            <div style="border-bottom:1px solid #eee">
+                              <a href="https://laundrexx.com/" style="font-size:1.4em;color: #00466a;text-decoration:none;font-weight:600">Laundrexx Fabric Care India Pvt Ltd</a>
+                            </div>
+                            <p style="font-size: 16px;color: black;font-weight: 600;">Dear ${result.recordsets[0][0].CUSTOMER_NAME},</p>
+                            <p style="font-size: 14px;color: black;">your OTP for order pickup is <b>( ${CustOtp} )</b>.</p>
+                            <p style="font-size: 14px;color: black;">Please share this code with your Laundrexx associate to complete the verification. Thank you. -Laundrexx.</p>
+                          </div>
+                          </html>`,
+          };
+
+          transporter.sendMail(mailOptions, function (error, info) {
+            if (error) {
+              console.log(error);
+            } else {
+              console.log("Email sent: " + info.response);
+            }
+          });
 
           return true;
         }
@@ -173,7 +285,7 @@ async function ConfirmDelivery(obj) {
     var result = await pool
       .request()
       .query(
-        `select CUSTOMER_PKID from CUSTOMERS where CUSTOMER_OUTLET_FKID = '${obj.OutletID}' and CUSTOMER_CONTACT_NUMBER = '${obj.CustomerPhoneNumber}'`
+        `select * from CUSTOMERS where CUSTOMER_OUTLET_FKID = '${obj.OutletID}' and CUSTOMER_CONTACT_NUMBER = '${obj.CustomerPhoneNumber}'`
       );
 
     CustomerID = result.recordsets[0][0].CUSTOMER_PKID;
@@ -211,6 +323,54 @@ async function ConfirmDelivery(obj) {
             .query(
               `update STORE_INVENTORY set STORE_INVENTORY_STATUS = '2' where STORE_INVENTORY_ORDER_FKID = '${obj.OrderList[i].ORDER_PKID}'`
             );
+
+          var options = {
+            method: "POST",
+            url: process.env.SMSCOUNTRY_URL,
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: process.env.SMSCOUNTRY_AUTHKEY,
+            },
+            body: JSON.stringify({
+              Text: `Your order ${obj.OrderList[i].ORDER_ORDER_NUMBER} is complete! We hope you're delighted with our services.Thank you for choosing Laundrexx. We look forward to serving you again soon!`,
+              Number: "91" + result.recordsets[0][0].CUSTOMER_CONTACT_NUMBER + "",
+              SenderId: "LNDREX",
+              DRNotifyUrl: "https://www.domainname.com/notifyurl",
+              DRNotifyHttpMethod: "POST",
+              Tool: "API",
+            }),
+          };
+          request(options, function (error, response) {
+            if (error) throw new Error(error);
+            console.log(response.body);
+          });
+
+          var mailOptions = {
+            from: process.env.EMAIL,
+            to: result.recordsets[0][0].CUSTOMER_EMAIL,
+            subject: "Order Delivered!",
+            html: `<html><head>
+                      <style>
+               
+                </style></head>
+                <div style="font-family: Helvetica,Arial,sans-serif;min-width:1000px;overflow:auto;line-height:2"><div style="margin:50px auto;width:70%;padding:20px 0">
+                                <div style="border-bottom:1px solid #eee">
+                                  <a href="https://laundrexx.com/" style="font-size:1.4em;color: #00466a;text-decoration:none;font-weight:600">Laundrexx Fabric Care India Pvt Ltd</a>
+                                </div>
+                                <p style="font-size: 16px;color: black;font-weight: 600;">Dear ${result.recordsets[0][0].CUSTOMER_NAME},</p>
+                                <p style="font-size: 14px;color: black;">Your order <b>${obj.OrderList[i].ORDER_NUMBER}</b> is complete!</p>
+                                <p style="font-size: 14px;color: black;"> We hope you're delighted with our services.Thank you for choosing Laundrexx. We look forward to serving you again soon!.</p>
+                              </div>
+                              </html>`,
+          };
+
+          transporter.sendMail(mailOptions, function (error, info) {
+            if (error) {
+              console.log(error);
+            } else {
+              console.log("Email sent: " + info.response);
+            }
+          });
         }
       }
       return true;

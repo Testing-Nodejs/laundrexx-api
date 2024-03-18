@@ -144,15 +144,14 @@ async function AddFactoryStaff(obj) {
           );
 
         if (result1.recordsets[0].length > 0) {
-          var spltFactory = obj.Factory.split(",");
-          for (var i = 0; i < spltFactory.length; i++) {
+          for (var i = 0; i < obj.Factory.length; i++) {
             var result3 = await pool
               .request()
               .input(
                 "FACTORY_STAFF_FACTORY_STAFF_FKID",
                 result1.recordsets[0][0].FACTORY_STAFF_PKID
               )
-              .input("FACTORY_STAFF_FACTORY_FACTORY_FKID", spltFactory[i])
+              .input("FACTORY_STAFF_FACTORY_FACTORY_FKID", obj.Factory[i].value)
               .query(
                 `insert into FACTORY_STAFF_FACTORY(FACTORY_STAFF_FACTORY_STAFF_FKID,FACTORY_STAFF_FACTORY_FACTORY_FKID) values(@FACTORY_STAFF_FACTORY_STAFF_FKID,@FACTORY_STAFF_FACTORY_FACTORY_FKID)`
               );
@@ -174,11 +173,7 @@ async function GetAllFactoryStaff() {
     var arr = [];
     let pool = await sql.connect(config);
 
-    let result = await pool
-      .request()
-      .query(
-        "select *, STUFF((SELECT ',' + CAST(FACTORY_PKID AS VARCHAR(MAX)) FROM FACTORY join FACTORY_STAFF_FACTORY on FACTORY_STAFF_FACTORY_FACTORY_FKID = FACTORY_PKID and FACTORY_STAFF_FACTORY_STAFF_FKID = FACTORY_STAFF_PKID FOR XML PATH('')),1,1,'') FACTORY_LIST from FACTORY_STAFF"
-      );
+    let result = await pool.request().query("select * from FACTORY_STAFF");
 
     if (result.recordsets[0].length > 0) {
       for (var i = 0; i < result.recordsets[0].length; i++) {
@@ -238,12 +233,11 @@ async function UpdateFactoryStaff(id, obj) {
         .query(
           "delete from FACTORY_STAFF_FACTORY where FACTORY_STAFF_FACTORY_STAFF_FKID = @FACTORY_STAFF_FACTORY_STAFF_FKID"
         );
-      var SpltFactory = obj.Factory.split(",");
-      for (var i = 0; i < SpltFactory.length; i++) {
+      for (var i = 0; i < obj.Factory.length; i++) {
         var result3 = await pool
           .request()
           .input("FACTORY_STAFF_FACTORY_STAFF_FKID", id)
-          .input("FACTORY_STAFF_FACTORY_FACTORY_FKID", SpltFactory[i])
+          .input("FACTORY_STAFF_FACTORY_FACTORY_FKID", obj.Factory[i].value)
           .query(
             `insert into FACTORY_STAFF_FACTORY(FACTORY_STAFF_FACTORY_STAFF_FKID,FACTORY_STAFF_FACTORY_FACTORY_FKID) values(@FACTORY_STAFF_FACTORY_STAFF_FKID,@FACTORY_STAFF_FACTORY_FACTORY_FKID)`
           );

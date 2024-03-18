@@ -9,6 +9,7 @@ var config = require("../dbconfig");
 const sql = require("mssql");
 const QRCode = require("qrcode");
 const path = require("path");
+var request = require("request");
 
 var nodemailer = require("nodemailer");
 var smtpTransport = require("nodemailer-smtp-transport");
@@ -26,34 +27,63 @@ var transporter = nodemailer.createTransport(
 
 async function SampleMailTest() {
   try {
-    var mailOptions = {
-      from: process.env.EMAIL,
-      to: "jafaraftab15011@gmail.com",
-      // cc: "",
-      subject: "Order Confirmation!",
-      html: `<html><head>
-            <style>
-     
-      </style></head>
-      <div style="font-family: Helvetica,Arial,sans-serif;min-width:1000px;overflow:auto;line-height:2"><div style="margin:50px auto;width:70%;padding:20px 0">
-                      <div style="border-bottom:1px solid #eee">
-                        <a href="https://laundrexx.com/" style="font-size:1.4em;color: #00466a;text-decoration:none;font-weight:600">Laundrexx Fabric Care India Pvt Ltd</a>
-                      </div>
-                      <p style="font-size: 16px;color: black;font-weight: 600;">Dear Customer,</p>
-                      <p style="font-size: 14px;color: black;">Your order <b>( D17-0002-24 )</b> is confirmed.</p>
-                      <p style="font-size: 14px;color: black;">Your order due date is <b>2024-02-29</b>. We'll text you when your order is ready. </p>
-                      <p style="font-size: 14px;color: black;">If you have any question, contact us at <b>+91 938-000-0005</b> -Laundrexx</p>
-                    </div>
-                    </html>`,
+    var options = {
+      method: "POST",
+      url: process.env.SMSCOUNTRY_URL,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: process.env.SMSCOUNTRY_AUTHKEY,
+      },
+      body: JSON.stringify({
+        Text: "Welcome to the world of Laundrexx! Your OTP for account creation is 433330. Enter this code to create your account. We're excited to have you on board! -Laundrexx",
+        Number: "919591769165",
+        SenderId: "LNDREX",
+        DRNotifyUrl: "https://www.domainname.com/notifyurl",
+        DRNotifyHttpMethod: "POST",
+        Tool: "API",
+      }),
     };
-
-    transporter.sendMail(mailOptions, function (error, info) {
-      if (error) {
-        console.log(error);
-      } else {
-        console.log("Email sent: " + info.response);
-      }
+    request(options, function (error, response) {
+      if (error) throw new Error(error);
+      console.log(response.body);
     });
+
+    // var mailOptions = {
+    //   from: process.env.EMAIL,
+    //   to: "jafaraftab15011@gmail.com",
+    //   // cc: "",
+    //   attachments: [
+    //     {
+    //       // utf-8 string as an attachment
+    //       filename: "text1.pdf",
+    //       content: `<html><head>
+    //       <style>
+
+    // </style></head>
+    // <div style="font-family: Helvetica,Arial,sans-serif;min-width:1000px;overflow:auto;line-height:2"><div style="margin:50px auto;width:70%;padding:20px 0">
+    //                 <div style="border-bottom:1px solid #eee">
+    //                   <a href="https://laundrexx.com/" style="font-size:1.4em;color: #00466a;text-decoration:none;font-weight:600">Laundrexx Fabric Care India Pvt Ltd</a>
+    //                 </div>
+    //                 <p style="font-size: 16px;color: black;font-weight: 600;">Dear Customer,</p>
+    //                 <p style="font-size: 14px;color: black;">Your order <b>( D17-0002-24 )</b> is confirmed.</p>
+    //                 <p style="font-size: 14px;color: black;">Your order due date is <b>2024-02-29</b>. We'll text you when your order is ready. </p>
+    //                 <p style="font-size: 14px;color: black;">If you have any question, contact us at <b>+91 938-000-0005</b> -Laundrexx</p>
+    //               </div>
+    //               </html>`,
+    //       contentType: "application/pdf",
+    //     },
+    //   ],
+    //   subject: "Order Confirmation!",
+    //   // html: ,
+    // };
+
+    // transporter.sendMail(mailOptions, function (error, info) {
+    //   if (error) {
+    //     console.log(error);
+    //   } else {
+    //     console.log("Email sent: " + info.response);
+    //   }
+    // });
   } catch (error) {
     console.log("GetDueDate-->", error);
   }
@@ -201,10 +231,13 @@ async function OutletPlaceOrder(obj) {
       .input("ORDER_TOTAL_ORDER_AMOUNT", obj.ORDER_TOTAL_ORDER_AMOUNT)
       .input("ORDER_CGST", obj.ORDER_CGST)
       .input("ORDER_SGST", obj.ORDER_SGST)
+      .input("ORDER_CGST_PERCENTAGE", obj.ORDER_CGST_PERCENTAGE)
+      .input("ORDER_SGST_PERCENTAGE", obj.ORDER_SGST_PERCENTAGE)
       .input("ORDER_TOTAL_SUR_CHARGE", obj.ORDER_TOTAL_SUR_CHARGE)
       .input("ORDER_TOTAL_INVOICE_VALUE", obj.ORDER_TOTAL_INVOICE_VALUE)
       .input("ORDER_ROUND_OFF_INVOICE", obj.ORDER_ROUND_OFF_INVOICE)
       .input("ORDER_GRAND_TOTAL_AMOUNT", obj.ORDER_GRAND_TOTAL_AMOUNT)
+      .input("ORDER_FINAL_ORDER_AMOUNT", obj.ORDER_FINAL_ORDER_AMOUNT)
       .input("ORDER_STATUS", "0")
       .input("ORDER_MODIFICATION_STATUS", "New Order")
       .input(
@@ -212,7 +245,7 @@ async function OutletPlaceOrder(obj) {
         "" + OutletCode + "-" + obj.ORDER_INVOICE_NUMBER + ".png"
       )
       .query(
-        "insert into ORDERS(ORDER_DATE,ORDER_OUTLET_FKID,ORDER_INVOICE_NUMBER,ORDER_ORDER_NUMBER,ORDER_IS_PICKUP,ORDER_IS_PICKUP_ID,ORDER_DOOR_DELIVERY,ORDER_SERVICE_CATEGORY_FKID,ORDER_SERVICE_TYPE_FKID,ORDER_CUSTOMER_FKID,ORDER_DUE_DATE,ORDER_ITEMS,ORDER_COUPON_FKID,ORDER_AMOUNT,ORDER_DISCOUNT,ORDER_TOTAL_ORDER_AMOUNT,ORDER_CGST,ORDER_SGST,ORDER_TOTAL_INVOICE_VALUE,ORDER_ROUND_OFF_INVOICE,ORDER_GRAND_TOTAL_AMOUNT,ORDER_STATUS,ORDER_MODIFICATION_STATUS,ORDER_QR,ORDER_STAFF_FKID,ORDER_TOTAL_SUR_CHARGE,ORDER_COUPON_TYPE,ORDER_DELIVERY_CHARGE) values(getdate(),@ORDER_OUTLET_FKID,@ORDER_INVOICE_NUMBER,@ORDER_ORDER_NUMBER,@ORDER_IS_PICKUP,@ORDER_IS_PICKUP_ID,@ORDER_DOOR_DELIVERY,@ORDER_SERVICE_CATEGORY_FKID,@ORDER_SERVICE_TYPE_FKID,@ORDER_CUSTOMER_FKID,@ORDER_DUE_DATE,@ORDER_ITEMS,@ORDER_COUPON_FKID,@ORDER_AMOUNT,@ORDER_DISCOUNT,@ORDER_TOTAL_ORDER_AMOUNT,@ORDER_CGST,@ORDER_SGST,@ORDER_TOTAL_INVOICE_VALUE,@ORDER_ROUND_OFF_INVOICE,@ORDER_GRAND_TOTAL_AMOUNT,@ORDER_STATUS,@ORDER_MODIFICATION_STATUS,@ORDER_QR,@ORDER_STAFF_FKID,@ORDER_TOTAL_SUR_CHARGE,@ORDER_COUPON_TYPE,@ORDER_DELIVERY_CHARGE)"
+        "insert into ORDERS(ORDER_DATE,ORDER_OUTLET_FKID,ORDER_INVOICE_NUMBER,ORDER_ORDER_NUMBER,ORDER_IS_PICKUP,ORDER_IS_PICKUP_ID,ORDER_DOOR_DELIVERY,ORDER_SERVICE_CATEGORY_FKID,ORDER_SERVICE_TYPE_FKID,ORDER_CUSTOMER_FKID,ORDER_DUE_DATE,ORDER_ITEMS,ORDER_COUPON_FKID,ORDER_AMOUNT,ORDER_DISCOUNT,ORDER_TOTAL_ORDER_AMOUNT,ORDER_CGST,ORDER_SGST,ORDER_TOTAL_INVOICE_VALUE,ORDER_ROUND_OFF_INVOICE,ORDER_GRAND_TOTAL_AMOUNT,ORDER_STATUS,ORDER_MODIFICATION_STATUS,ORDER_QR,ORDER_STAFF_FKID,ORDER_TOTAL_SUR_CHARGE,ORDER_COUPON_TYPE,ORDER_DELIVERY_CHARGE,ORDER_CGST_PERCENTAGE,ORDER_SGST_PERCENTAGE,ORDER_FINAL_ORDER_AMOUNT) values(getdate(),@ORDER_OUTLET_FKID,@ORDER_INVOICE_NUMBER,@ORDER_ORDER_NUMBER,@ORDER_IS_PICKUP,@ORDER_IS_PICKUP_ID,@ORDER_DOOR_DELIVERY,@ORDER_SERVICE_CATEGORY_FKID,@ORDER_SERVICE_TYPE_FKID,@ORDER_CUSTOMER_FKID,@ORDER_DUE_DATE,@ORDER_ITEMS,@ORDER_COUPON_FKID,@ORDER_AMOUNT,@ORDER_DISCOUNT,@ORDER_TOTAL_ORDER_AMOUNT,@ORDER_CGST,@ORDER_SGST,@ORDER_TOTAL_INVOICE_VALUE,@ORDER_ROUND_OFF_INVOICE,@ORDER_GRAND_TOTAL_AMOUNT,@ORDER_STATUS,@ORDER_MODIFICATION_STATUS,@ORDER_QR,@ORDER_STAFF_FKID,@ORDER_TOTAL_SUR_CHARGE,@ORDER_COUPON_TYPE,@ORDER_DELIVERY_CHARGE,@ORDER_CGST_PERCENTAGE,@ORDER_SGST_PERCENTAGE,@ORDER_FINAL_ORDER_AMOUNT)"
       );
 
     if (result.rowsAffected > 0) {
@@ -336,6 +369,28 @@ async function OutletPlaceOrder(obj) {
         // CustomerDetails.recordsets[0][0].CUSTOMER_ALT_NUMBER
         // CustomerDetails.recordsets[0][0].CUSTOMER_EMAIL
 
+        var options = {
+          method: "POST",
+          url: process.env.SMSCOUNTRY_URL,
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: process.env.SMSCOUNTRY_AUTHKEY,
+          },
+          body: JSON.stringify({
+            Text: `Your order ${obj.ORDER_ORDER_NUMBER} is confirmed. Your order due date is ${obj.ORDER_DUE_DATE}. We'll text you when your order is ready. If you have any question, contact us at +91 938-000-0005 -Laundrexx`,
+            Number:
+              "91" + CustomerDetails.recordsets[0][0].CUSTOMER_ALT_NUMBER + "",
+            SenderId: "LNDREX",
+            DRNotifyUrl: "https://www.domainname.com/notifyurl",
+            DRNotifyHttpMethod: "POST",
+            Tool: "API",
+          }),
+        };
+        request(options, function (error, response) {
+          if (error) throw new Error(error);
+          console.log(response.body);
+        });
+
         var mailOptions = {
           from: process.env.EMAIL,
           to: CustomerDetails.recordsets[0][0].CUSTOMER_EMAIL,
@@ -424,17 +479,20 @@ async function OutletOrderUpdate(OrderID, obj) {
       .input("ORDER_TOTAL_ORDER_AMOUNT", obj.ORDER_TOTAL_ORDER_AMOUNT)
       .input("ORDER_CGST", obj.ORDER_CGST)
       .input("ORDER_SGST", obj.ORDER_SGST)
+      .input("ORDER_CGST_PERCENTAGE", obj.ORDER_CGST_PERCENTAGE)
+      .input("ORDER_SGST_PERCENTAGE", obj.ORDER_SGST_PERCENTAGE)
       .input("ORDER_DELIVERY_CHARGE", obj.ORDER_DELIVERY_CHARGE)
       .input("ORDER_TOTAL_SUR_CHARGE", obj.ORDER_TOTAL_SUR_CHARGE)
       .input("ORDER_TOTAL_INVOICE_VALUE", obj.ORDER_TOTAL_INVOICE_VALUE)
       .input("ORDER_ROUND_OFF_INVOICE", obj.ORDER_ROUND_OFF_INVOICE)
       .input("ORDER_GRAND_TOTAL_AMOUNT", obj.ORDER_GRAND_TOTAL_AMOUNT)
+      .input("ORDER_FINAL_ORDER_AMOUNT", obj.ORDER_FINAL_ORDER_AMOUNT)
       .input("ORDER_PKID", OrderID)
       .input("ORDER_MODIFICATION_STATUS", "Edited Order")
       .input("ORDER_MODIFIED_BY", obj.ORDER_MODIFIED_BY)
       .input("ORDER_MODIFIED_BY_FKID", obj.ORDER_MODIFIED_BY_FKID)
       .query(
-        "update ORDERS set ORDER_DELIVERY_CHARGE = @ORDER_DELIVERY_CHARGE,ORDER_TOTAL_SUR_CHARGE = @ORDER_TOTAL_SUR_CHARGE, ORDER_COUPON_TYPE = @ORDER_COUPON_TYPE, ORDER_MODIFICATION_STATUS = @ORDER_MODIFICATION_STATUS, ORDER_OUTLET_FKID = @ORDER_OUTLET_FKID,ORDER_INVOICE_NUMBER = @ORDER_INVOICE_NUMBER,ORDER_ORDER_NUMBER = @ORDER_ORDER_NUMBER,ORDER_IS_PICKUP = @ORDER_IS_PICKUP,ORDER_IS_PICKUP_ID = @ORDER_IS_PICKUP_ID,ORDER_DOOR_DELIVERY = @ORDER_DOOR_DELIVERY,ORDER_SERVICE_CATEGORY_FKID = @ORDER_SERVICE_CATEGORY_FKID,ORDER_SERVICE_TYPE_FKID = @ORDER_SERVICE_TYPE_FKID,ORDER_CUSTOMER_FKID = @ORDER_CUSTOMER_FKID,ORDER_DUE_DATE = @ORDER_DUE_DATE,ORDER_ITEMS = @ORDER_ITEMS,ORDER_COUPON_FKID = @ORDER_COUPON_FKID,ORDER_AMOUNT = @ORDER_AMOUNT,ORDER_DISCOUNT = @ORDER_DISCOUNT,ORDER_TOTAL_ORDER_AMOUNT = @ORDER_TOTAL_ORDER_AMOUNT,ORDER_CGST = @ORDER_CGST,ORDER_SGST = @ORDER_SGST,ORDER_TOTAL_INVOICE_VALUE = @ORDER_TOTAL_INVOICE_VALUE,ORDER_ROUND_OFF_INVOICE = @ORDER_ROUND_OFF_INVOICE,ORDER_GRAND_TOTAL_AMOUNT = @ORDER_GRAND_TOTAL_AMOUNT, ORDER_MODIFIED_BY = @ORDER_MODIFIED_BY,ORDER_MODIFIED_BY_FKID = @ORDER_MODIFIED_BY_FKID where ORDER_PKID = @ORDER_PKID"
+        "update ORDERS set ORDER_FINAL_ORDER_AMOUNT = @ORDER_FINAL_ORDER_AMOUNT, ORDER_CGST_PERCENTAGE = @ORDER_CGST_PERCENTAGE, ORDER_SGST_PERCENTAGE = @ORDER_SGST_PERCENTAGE, ORDER_DELIVERY_CHARGE = @ORDER_DELIVERY_CHARGE,ORDER_TOTAL_SUR_CHARGE = @ORDER_TOTAL_SUR_CHARGE, ORDER_COUPON_TYPE = @ORDER_COUPON_TYPE, ORDER_MODIFICATION_STATUS = @ORDER_MODIFICATION_STATUS, ORDER_OUTLET_FKID = @ORDER_OUTLET_FKID,ORDER_INVOICE_NUMBER = @ORDER_INVOICE_NUMBER,ORDER_ORDER_NUMBER = @ORDER_ORDER_NUMBER,ORDER_IS_PICKUP = @ORDER_IS_PICKUP,ORDER_IS_PICKUP_ID = @ORDER_IS_PICKUP_ID,ORDER_DOOR_DELIVERY = @ORDER_DOOR_DELIVERY,ORDER_SERVICE_CATEGORY_FKID = @ORDER_SERVICE_CATEGORY_FKID,ORDER_SERVICE_TYPE_FKID = @ORDER_SERVICE_TYPE_FKID,ORDER_CUSTOMER_FKID = @ORDER_CUSTOMER_FKID,ORDER_DUE_DATE = @ORDER_DUE_DATE,ORDER_ITEMS = @ORDER_ITEMS,ORDER_COUPON_FKID = @ORDER_COUPON_FKID,ORDER_AMOUNT = @ORDER_AMOUNT,ORDER_DISCOUNT = @ORDER_DISCOUNT,ORDER_TOTAL_ORDER_AMOUNT = @ORDER_TOTAL_ORDER_AMOUNT,ORDER_CGST = @ORDER_CGST,ORDER_SGST = @ORDER_SGST,ORDER_TOTAL_INVOICE_VALUE = @ORDER_TOTAL_INVOICE_VALUE,ORDER_ROUND_OFF_INVOICE = @ORDER_ROUND_OFF_INVOICE,ORDER_GRAND_TOTAL_AMOUNT = @ORDER_GRAND_TOTAL_AMOUNT, ORDER_MODIFIED_BY = @ORDER_MODIFIED_BY,ORDER_MODIFIED_BY_FKID = @ORDER_MODIFIED_BY_FKID where ORDER_PKID = @ORDER_PKID"
       );
 
     if (result.rowsAffected > 0) {
@@ -532,6 +590,76 @@ async function AllOrders() {
     return result.recordsets[0];
   } catch (error) {
     console.log("AllOrders-->", error);
+  }
+}
+
+async function DeliveredOrders(UserType, UserID) {
+  try {
+    let pool = await sql.connect(config);
+
+    let result = await pool
+      .request()
+      .input("Outlet", UserID)
+      .input("Month", "")
+      .input("Year", "")
+      .input("FromDate", "")
+      .input("ToDate", "")
+      .input("Type", UserType === "Admin" ? "Delivered" : "DeliveredForManager")
+      .execute("ViewOrders");
+
+    return result.recordsets[0];
+  } catch (error) {
+    console.log("DeliveredOrders-->", error);
+  }
+}
+
+async function Admin_User_CurrentDayOrders(UserType, UserID) {
+  try {
+    let pool = await sql.connect(config);
+
+    let result = await pool
+      .request()
+      .input("Outlet", UserID)
+      .input("Month", "")
+      .input("Year", "")
+      .input("FromDate", "")
+      .input("ToDate", "")
+      .input(
+        "Type",
+        UserType === "Admin"
+          ? "UserCurrentDayForAdmin"
+          : "UserCurrentDayForManager"
+      )
+      .execute("ViewOrders");
+
+    return result.recordsets[0];
+  } catch (error) {
+    console.log("Admin_User_CurrentDayOrders-->", error);
+  }
+}
+
+async function Admin_User_CurrentDayOrdersFilter(UserType, UserID, OutletID) {
+  try {
+    let pool = await sql.connect(config);
+
+    let result = await pool
+      .request()
+      .input("Outlet", UserID)
+      .input("Month", OutletID)
+      .input("Year", "")
+      .input("FromDate", "")
+      .input("ToDate", "")
+      .input(
+        "Type",
+        UserType === "Admin"
+          ? "UserCurrentDayForAdminByOutlet"
+          : "UserCurrentDayForManagerByOutlet"
+      )
+      .execute("ViewOrders");
+
+    return result.recordsets[0];
+  } catch (error) {
+    console.log("Admin_User_CurrentDayOrdersFilter-->", error);
   }
 }
 
@@ -965,6 +1093,80 @@ async function GetAllOrdersWithFilters(obj) {
     }
   } catch (error) {
     console.log("GetAllOrdersWithFilters-->", error);
+  }
+}
+
+async function GetDeliveredOrdersWithFilters(obj) {
+  try {
+    console.log(obj);
+    let pool = await sql.connect(config);
+
+    var MyQuery = `select ORDERS.*,SERVICE_CATEGORY_NAME,SERVICE_TYPE_NAME,SERVICE_CATEGORY_HSN,STORE_STAFF_NAME,SERVICE_CATEGORY_CGST,SERVICE_CATEGORY_SGST,
+    (select sum(cast([ORDER_ITEM_QUANTITY] as int)) from [dbo].[ORDER_ITEMS] where [ORDER_ITEM_ORDER_FKID] = [ORDER_PKID]) TotalQuantity,
+    (select sum(cast(ORDER_ITEM_COUNT as int)) from [dbo].[ORDER_ITEMS] where [ORDER_ITEM_ORDER_FKID] = [ORDER_PKID]) TotalCount,
+    (select [DIGITAL_SIGNATURE_FILE] from [dbo].[DIGITAL_SIGNATURE] where [DIGITAL_SIGNATURE_PKID] = (select max([DIGITAL_SIGNATURE_PKID]) from [dbo].[DIGITAL_SIGNATURE])) as DIGITAL_SIGNATURE,
+    ISNULL((case when ORDERS.ORDER_MODIFIED_BY_FKID = 0 then ORDERS.ORDER_MODIFIED_BY else (select [USER_NAME] from [dbo].[USERS] where USER_PKID = ORDERS.ORDER_MODIFIED_BY_FKID) end),'-') as ModifiedBy,
+    STORES.*,FACTORY_NAME,FACTORY_CODE,ROUTE_NAME,ROUTE_CODE,SERVICE_TYPE_SURCHARGE,
+    [CUSTOMER_PKID], [CUSTOMER_NAME], [CUSTOMER_CONTACT_NUMBER], [CUSTOMER_GST_TYPE], [CUSTOMER_EMAIL], [CUSTOMER_ADDRESS],[CUSTOMER_TYPE_NAME],CUSTOMER_GST_NUMBER,
+    case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then CUSTOMER_COUPON.CUSTOMER_COUPON_PKID else COUPONS.COUPONS_PKID end as COUPONS_PKID, 
+	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then CUSTOMER_COUPON.CUSTOMER_COUPON_NAME else COUPONS.COUPONS_NAME end as COUPONS_NAME, 
+	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then 'CustomerBasedCoupon' else (case when COUPONS.COUPONS_ITEM_BASED = 0 then 'OrderBasedCoupon' else  'ItemBasedCoupon' end) end as COUPON_TYPE, 
+	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then CUSTOMER_COUPON.CUSTOMER_COUPON_TYPE else COUPONS.COUPONS_VALIDITY end as COUPONS_VALIDITY, 
+	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then '-' else cast(COUPONS.COUPONS_VALIDITY_DATE as nvarchar(max)) end as COUPONS_VALIDITY_DATE, 
+	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then CUSTOMER_COUPON.CUSTOMER_COUPON_CODE else COUPONS.COUPONS_CODE end as COUPONS_CODE, 
+	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then CUSTOMER_COUPON.CUSTOMER_COUPON_PERCENT_OR_PRICE else COUPONS.COUPONS_PRICE_OR_PERCENTAGE end as COUPONS_PRICE_OR_PERCENTAGE, 
+	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then CUSTOMER_COUPON.CUSTOMER_COUPON_DISCOUNT else COUPONS.COUPONS_DISCOUNT end as COUPONS_DISCOUNT, 
+	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then CUSTOMER_COUPON.CUSTOMER_COUPON_ACTIVE else COUPONS.COUPONS_ACTIVE end as COUPONS_ACTIVE, 
+	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then 0 else COUPONS.COUPONS_ITEM_BASED end as COUPONS_ITEM_BASED, 
+	cast((case when DATEDIFF(day, ORDER_DATE, getdate()) > 2 then 0 else 1 end) as bit) as IsEditable
+    from ORDERS 
+    join SERVICE_CATEGORY on SERVICE_CATEGORY_PKID = ORDER_SERVICE_CATEGORY_FKID 
+    join SERVICE_TYPE on SERVICE_TYPE_PKID = ORDER_SERVICE_TYPE_FKID 
+    join STORES on STORE_PKID = ORDER_OUTLET_FKID
+    ${
+      obj.UserType === "Admin"
+        ? ""
+        : "join [dbo].[USER_OUTLETS] on [USER_OUTLETS_OUTLET_FKID] = [STORE_PKID] and USER_OUTLETS_USER_FKID = " +
+          obj.UserID +
+          ""
+    }
+    join [dbo].[STORE_STAFF] on [STORE_STAFF_PKID] = [ORDER_STAFF_FKID]
+    join [dbo].[ROUTES] on ROUTE_PKID = STORE_ROUTE_FKID 
+    join FACTORY on FACTORY_PKID = STORE_DEFAULT_FACTORY 
+    join [dbo].[CUSTOMERS] on [CUSTOMER_PKID] = [ORDER_CUSTOMER_FKID]
+    join [dbo].[CUSTOMER_TYPE] on [CUSTOMER_TYPE_PKID] = [CUSTOMER_TYPE_FKID]
+    left join COUPONS on [COUPONS_PKID] = [ORDER_COUPON_FKID] 
+    left join CUSTOMER_COUPON on CUSTOMER_COUPON_PKID = [ORDER_COUPON_FKID]
+    where year(ORDER_DATE) = '${obj.Year}'  and ORDER_STATUS = 5 `;
+
+    if (
+      obj.Outlet == "-" &&
+      obj.Month == "-" &&
+      obj.FromDate == "-" &&
+      obj.ToDate == "-"
+    ) {
+      MyQuery += `order by ORDER_PKID desc`;
+      var result3 = await pool.request().query(MyQuery);
+      return result3.recordsets[0];
+    } else {
+      if (obj.Outlet == "-") {
+      } else {
+        MyQuery += `and ORDER_OUTLET_FKID = '${obj.Outlet}' `;
+      }
+      if (obj.Month == "-") {
+      } else {
+        MyQuery += `and month(ORDER_DATE) = '${obj.Month}' `;
+      }
+      if (obj.FromDate == "-") {
+      } else {
+        MyQuery += `and (ORDER_DATE between '${obj.FromDate}' and '${obj.ToDate}')`;
+      }
+      MyQuery += `order by ORDER_PKID desc`;
+      var result4 = await pool.request().query(MyQuery);
+      return result4.recordsets[0];
+    }
+  } catch (error) {
+    console.log("GetDeliveredOrdersWithFilters-->", error);
   }
 }
 
@@ -2353,6 +2555,10 @@ module.exports = {
   OutletPlaceOrder: OutletPlaceOrder,
   OutletOrderUpdate: OutletOrderUpdate,
   AllOrders: AllOrders,
+  DeliveredOrders: DeliveredOrders,
+  GetDeliveredOrdersWithFilters: GetDeliveredOrdersWithFilters,
+  Admin_User_CurrentDayOrders: Admin_User_CurrentDayOrders,
+  Admin_User_CurrentDayOrdersFilter: Admin_User_CurrentDayOrdersFilter,
   AllOrdersForManager: AllOrdersForManager,
   OrderDetailsByNumber: OrderDetailsByNumber,
   OrderDetailsByNumberPrint: OrderDetailsByNumberPrint,
