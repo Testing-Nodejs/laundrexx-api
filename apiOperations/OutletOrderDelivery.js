@@ -68,14 +68,15 @@ async function SendOTP(OutletID, PhoneNumber) {
             },
             body: JSON.stringify({
               Text: `Dear customer, your OTP for order pickup is ${CustOTP1} . Please share this code with your Laundrexx associate to complete the verification. Thank you. -Laundrexx`,
-              Number: "91" + result.recordsets[0][0].CUSTOMER_CONTACT_NUMBER + "",
+              Number:
+                "91" + result.recordsets[0][0].CUSTOMER_CONTACT_NUMBER + "",
               SenderId: "LNDREX",
               DRNotifyUrl: "https://www.domainname.com/notifyurl",
               DRNotifyHttpMethod: "POST",
               Tool: "API",
             }),
           };
-          console.log(options)
+          console.log(options);
           request(options, function (error, response) {
             if (error) throw new Error(error);
             console.log(response.body);
@@ -129,7 +130,8 @@ async function SendOTP(OutletID, PhoneNumber) {
             },
             body: JSON.stringify({
               Text: `Dear customer, your OTP for order pickup is ${CustOtp} . Please share this code with your Laundrexx associate to complete the verification. Thank you. -Laundrexx`,
-              Number: "91" + result.recordsets[0][0].CUSTOMER_CONTACT_NUMBER + "",
+              Number:
+                "91" + result.recordsets[0][0].CUSTOMER_CONTACT_NUMBER + "",
               SenderId: "LNDREX",
               DRNotifyUrl: "https://www.domainname.com/notifyurl",
               DRNotifyHttpMethod: "POST",
@@ -275,6 +277,24 @@ where [STORE_INVENTORY_STATUS] = 1 and [CUSTOMER_CONTACT_NUMBER] = '${PhoneNumbe
   }
 }
 
+async function GetOrdersListByOrderNumber(obj) {
+  try {
+    let pool = await sql.connect(config);
+
+    var result = await pool.request().query(
+      `select distinct [ORDER_PKID],[ORDER_ORDER_NUMBER],[ORDER_BAD_DEBITS], [ORDER_INVOICE_NUMBER], [ORDER_DATE], [ORDER_DUE_DATE], [CUSTOMER_NAME],[ORDER_CUSTOMER_FKID], [ORDER_GRAND_TOTAL_AMOUNT], 0 as checked
+from [dbo].[ORDERS] 
+join [dbo].[CUSTOMERS] on [CUSTOMER_PKID] = [ORDER_CUSTOMER_FKID]
+join [dbo].[STORE_INVENTORY] on [STORE_INVENTORY_ORDER_FKID] = [ORDER_PKID]
+where [STORE_INVENTORY_STATUS] = 1 and [ORDER_ORDER_NUMBER] = '${obj.OrderNumber}'`
+    );
+
+    return result.recordsets[0];
+  } catch (error) {
+    console.log("GetOrdersListByOrderNumber-->", error);
+  }
+}
+
 async function ConfirmDelivery(obj) {
   try {
     console.log(obj);
@@ -333,7 +353,8 @@ async function ConfirmDelivery(obj) {
             },
             body: JSON.stringify({
               Text: `Your order ${obj.OrderList[i].ORDER_ORDER_NUMBER} is complete! We hope you're delighted with our services.Thank you for choosing Laundrexx. We look forward to serving you again soon!`,
-              Number: "91" + result.recordsets[0][0].CUSTOMER_CONTACT_NUMBER + "",
+              Number:
+                "91" + result.recordsets[0][0].CUSTOMER_CONTACT_NUMBER + "",
               SenderId: "LNDREX",
               DRNotifyUrl: "https://www.domainname.com/notifyurl",
               DRNotifyHttpMethod: "POST",
@@ -379,6 +400,109 @@ async function ConfirmDelivery(obj) {
     }
   } catch (error) {
     console.log("ConfirmDelivery-->", error);
+  }
+}
+
+async function ConfirmDeliveryByQR(obj) {
+  try {
+    console.log(obj);
+    let pool = await sql.connect(config);
+    var result = await pool
+      .request()
+      .query(
+        `select * from CUSTOMERS where CUSTOMER_PKID = '${obj.CustomerID}'`
+      );
+
+    var result1 = await pool.request().query(
+      `insert into ORDER_PAYMENT(ORDER_PAYMENT_DATE,ORDER_PAYMENT_TIME,ORDER_PAYMENT_OUTLET_FKID,ORDER_PAYMENT_CUSTOMER_FKID,ORDER_PAYMENT_NO_OF_ORDERS,ORDER_PAYMENT_TOTAL_ORDER_AMOUNT,ORDER_PAYMENT_COLLECTED_AMOUNT,ORDER_PAYMENT_BALANCE_AMOUNT,ORDER_PAYMENT_MODE,ORDER_PAYMENT_BAD_DEBITS,ORDER_PAYMENT_FINAL_AMOUNT) 
+        values(getdate(),(SELECT CONVERT(VARCHAR(10), CAST(getdate() AS TIME), 0)),'${obj.OutletID}','${obj.CustomerID}','${obj.selectedOrdersCnt}','${obj.TotalOrderAmount}','${obj.CollectedAmount}','${obj.BalanceAmount}','${obj.PaymentMode}','${obj.BadDebits}','${obj.FinalAmount}')`
+    );
+
+    if (result1.rowsAffected) {
+      var result2 = await pool
+        .request()
+        .query(
+          `select max(ORDER_PAYMENT_PKID) as ORDER_PAYMENT_PKID from ORDER_PAYMENT`
+        );
+      for (var i = 0; i < obj.OrderList.length; i++) {
+        if (
+          obj.OrderList[i].checked === 1 ||
+          obj.OrderList[i].checked === "1" ||
+          obj.OrderList[i].checked == true
+        ) {
+          var result3 = await pool.request().query(
+            `insert into ORDER_PAYMENT_ORDER_LIST(ORDER_PAYMENT_ORDER_LIST_ORDER_FKID,ORDER_PAYMENT_ORDER_LIST_PAYMENT_FKID) 
+                  values('${obj.OrderList[i].ORDER_PKID}','${result2.recordsets[0][0].ORDER_PAYMENT_PKID}')`
+          );
+
+          var result4 = await pool
+            .request()
+            .query(
+              `update ORDERS set ORDER_STATUS = '5' where ORDER_PKID = '${obj.OrderList[i].ORDER_PKID}'`
+            );
+
+          var result5 = await pool
+            .request()
+            .query(
+              `update STORE_INVENTORY set STORE_INVENTORY_STATUS = '2' where STORE_INVENTORY_ORDER_FKID = '${obj.OrderList[i].ORDER_PKID}'`
+            );
+
+          var options = {
+            method: "POST",
+            url: process.env.SMSCOUNTRY_URL,
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: process.env.SMSCOUNTRY_AUTHKEY,
+            },
+            body: JSON.stringify({
+              Text: `Your order ${obj.OrderList[i].ORDER_ORDER_NUMBER} is complete! We hope you're delighted with our services.Thank you for choosing Laundrexx. We look forward to serving you again soon!`,
+              Number:
+                "91" + result.recordsets[0][0].CUSTOMER_CONTACT_NUMBER + "",
+              SenderId: "LNDREX",
+              DRNotifyUrl: "https://www.domainname.com/notifyurl",
+              DRNotifyHttpMethod: "POST",
+              Tool: "API",
+            }),
+          };
+          request(options, function (error, response) {
+            if (error) throw new Error(error);
+            console.log(response.body);
+          });
+
+          var mailOptions = {
+            from: process.env.EMAIL,
+            to: result.recordsets[0][0].CUSTOMER_EMAIL,
+            subject: "Order Delivered!",
+            html: `<html><head>
+                      <style>
+               
+                </style></head>
+                <div style="font-family: Helvetica,Arial,sans-serif;min-width:1000px;overflow:auto;line-height:2"><div style="margin:50px auto;width:70%;padding:20px 0">
+                                <div style="border-bottom:1px solid #eee">
+                                  <a href="https://laundrexx.com/" style="font-size:1.4em;color: #00466a;text-decoration:none;font-weight:600">Laundrexx Fabric Care India Pvt Ltd</a>
+                                </div>
+                                <p style="font-size: 16px;color: black;font-weight: 600;">Dear ${result.recordsets[0][0].CUSTOMER_NAME},</p>
+                                <p style="font-size: 14px;color: black;">Your order <b>${obj.OrderList[i].ORDER_NUMBER}</b> is complete!</p>
+                                <p style="font-size: 14px;color: black;"> We hope you're delighted with our services.Thank you for choosing Laundrexx. We look forward to serving you again soon!.</p>
+                              </div>
+                              </html>`,
+          };
+
+          transporter.sendMail(mailOptions, function (error, info) {
+            if (error) {
+              console.log(error);
+            } else {
+              console.log("Email sent: " + info.response);
+            }
+          });
+        }
+      }
+      return true;
+    } else {
+      return false;
+    }
+  } catch (error) {
+    console.log("ConfirmDeliveryByQR-->", error);
   }
 }
 
@@ -450,7 +574,9 @@ module.exports = {
   VerifyDeliveryOTP: VerifyDeliveryOTP,
   VerifyDeliveryCode: VerifyDeliveryCode,
   GetOrdersListByPhoneNumber: GetOrdersListByPhoneNumber,
+  GetOrdersListByOrderNumber: GetOrdersListByOrderNumber,
   ConfirmDelivery: ConfirmDelivery,
+  ConfirmDeliveryByQR: ConfirmDeliveryByQR,
   GetOutletCollectionReport: GetOutletCollectionReport,
   GetOutletCollectionReportFilter: GetOutletCollectionReportFilter,
 };

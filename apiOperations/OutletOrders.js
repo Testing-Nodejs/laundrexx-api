@@ -237,7 +237,7 @@ async function OutletPlaceOrder(obj) {
       .input("ORDER_TOTAL_INVOICE_VALUE", obj.ORDER_TOTAL_INVOICE_VALUE)
       .input("ORDER_ROUND_OFF_INVOICE", obj.ORDER_ROUND_OFF_INVOICE)
       .input("ORDER_GRAND_TOTAL_AMOUNT", obj.ORDER_GRAND_TOTAL_AMOUNT)
-      .input("ORDER_FINAL_ORDER_AMOUNT", obj.ORDER_FINAL_ORDER_AMOUNT)
+      .input("ORDER_FINAL_ORDER_AMOUNT", obj.ORDER_GRAND_TOTAL_AMOUNT)
       .input("ORDER_STATUS", "0")
       .input("ORDER_MODIFICATION_STATUS", "New Order")
       .input(
@@ -377,15 +377,16 @@ async function OutletPlaceOrder(obj) {
             Authorization: process.env.SMSCOUNTRY_AUTHKEY,
           },
           body: JSON.stringify({
-            Text: `Your order ${obj.ORDER_ORDER_NUMBER} is confirmed. Your order due date is ${obj.ORDER_DUE_DATE}. We'll text you when your order is ready. If you have any question, contact us at +91 938-000-0005 -Laundrexx`,
+            Text: `Your order ${obj.ORDER_ORDER_NUMBER} is confirmed. Your order due date is ${SplitDate(obj.ORDER_DUE_DATE)}. We'll text you when your order is ready. If you have any question, contact us at +91 938-000-0005 -Laundrexx`,
             Number:
-              "91" + CustomerDetails.recordsets[0][0].CUSTOMER_ALT_NUMBER + "",
+              "91" + CustomerDetails.recordsets[0][0].CUSTOMER_CONTACT_NUMBER + "",
             SenderId: "LNDREX",
             DRNotifyUrl: "https://www.domainname.com/notifyurl",
             DRNotifyHttpMethod: "POST",
             Tool: "API",
           }),
         };
+        console.log(options)
         request(options, function (error, response) {
           if (error) throw new Error(error);
           console.log(response.body);
@@ -405,7 +406,7 @@ async function OutletPlaceOrder(obj) {
                           </div>
                           <p style="font-size: 16px;color: black;font-weight: 600;">Dear ${CustomerDetails.recordsets[0][0].CUSTOMER_NAME},</p>
                           <p style="font-size: 14px;color: black;">Your order <b>( ${obj.ORDER_ORDER_NUMBER} )</b> is confirmed.</p>
-                          <p style="font-size: 14px;color: black;">Your order due date is <b>${obj.ORDER_DUE_DATE}</b>. We'll text you when your order is ready. </p>
+                          <p style="font-size: 14px;color: black;">Your order due date is <b>${SplitDate(obj.ORDER_DUE_DATE)}</b>. We'll text you when your order is ready. </p>
                           <p style="font-size: 14px;color: black;">If you have any question, contact us at <b>+91 938-000-0005</b> -Laundrexx</p>
                         </div>
                         </html>`,
@@ -486,7 +487,7 @@ async function OutletOrderUpdate(OrderID, obj) {
       .input("ORDER_TOTAL_INVOICE_VALUE", obj.ORDER_TOTAL_INVOICE_VALUE)
       .input("ORDER_ROUND_OFF_INVOICE", obj.ORDER_ROUND_OFF_INVOICE)
       .input("ORDER_GRAND_TOTAL_AMOUNT", obj.ORDER_GRAND_TOTAL_AMOUNT)
-      .input("ORDER_FINAL_ORDER_AMOUNT", obj.ORDER_FINAL_ORDER_AMOUNT)
+      .input("ORDER_FINAL_ORDER_AMOUNT", obj.ORDER_GRAND_TOTAL_AMOUNT)
       .input("ORDER_PKID", OrderID)
       .input("ORDER_MODIFICATION_STATUS", "Edited Order")
       .input("ORDER_MODIFIED_BY", obj.ORDER_MODIFIED_BY)
@@ -1051,7 +1052,8 @@ async function GetAllOrdersWithFilters(obj) {
 	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then CUSTOMER_COUPON.CUSTOMER_COUPON_DISCOUNT else COUPONS.COUPONS_DISCOUNT end as COUPONS_DISCOUNT, 
 	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then CUSTOMER_COUPON.CUSTOMER_COUPON_ACTIVE else COUPONS.COUPONS_ACTIVE end as COUPONS_ACTIVE, 
 	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then 0 else COUPONS.COUPONS_ITEM_BASED end as COUPONS_ITEM_BASED, 
-	cast((case when DATEDIFF(day, ORDER_DATE, getdate()) > 2 then 0 else 1 end) as bit) as IsEditable
+	cast((case when DATEDIFF(day, ORDER_DATE, getdate()) > 2 then 0 else 1 end) as bit) as IsEditable,
+  isnull(PICKUP_ADDRESS, '-') as PICKUP_ADDRESS,isnull(cast(PICKUP_DATE as nvarchar(max)), '-') as PICKUP_DATE,isnull(DRIVER_NAME, '-') as DRIVER_NAME
     from ORDERS 
     join SERVICE_CATEGORY on SERVICE_CATEGORY_PKID = ORDER_SERVICE_CATEGORY_FKID 
     join SERVICE_TYPE on SERVICE_TYPE_PKID = ORDER_SERVICE_TYPE_FKID 
@@ -1063,6 +1065,8 @@ async function GetAllOrdersWithFilters(obj) {
     join [dbo].[CUSTOMER_TYPE] on [CUSTOMER_TYPE_PKID] = [CUSTOMER_TYPE_FKID]
     left join COUPONS on [COUPONS_PKID] = [ORDER_COUPON_FKID] 
     left join CUSTOMER_COUPON on CUSTOMER_COUPON_PKID = [ORDER_COUPON_FKID]
+    left join [dbo].[PICKUPS] on [PICKUP_CODE] = [ORDER_IS_PICKUP_ID]
+	left join [dbo].[DRIVERS] on [DRIVER_PKID] = [PICKUP_DRIVER_FKID]
     where year(ORDER_DATE) = '${obj.Year}' `;
 
     if (
@@ -1191,7 +1195,8 @@ async function GetAllOrdersWithFiltersForManager(obj) {
 	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then CUSTOMER_COUPON.CUSTOMER_COUPON_DISCOUNT else COUPONS.COUPONS_DISCOUNT end as COUPONS_DISCOUNT, 
 	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then CUSTOMER_COUPON.CUSTOMER_COUPON_ACTIVE else COUPONS.COUPONS_ACTIVE end as COUPONS_ACTIVE, 
 	case when ORDER_COUPON_TYPE = 'CustomerBasedCoupon' then 0 else COUPONS.COUPONS_ITEM_BASED end as COUPONS_ITEM_BASED, 
-	cast((case when DATEDIFF(day, ORDER_DATE, getdate()) > 2 then 0 else 1 end) as bit) as IsEditable
+	cast((case when DATEDIFF(day, ORDER_DATE, getdate()) > 2 then 0 else 1 end) as bit) as IsEditable,
+  isnull(PICKUP_ADDRESS, '-') as PICKUP_ADDRESS,isnull(cast(PICKUP_DATE as nvarchar(max)), '-') as PICKUP_DATE,isnull(DRIVER_NAME, '-') as DRIVER_NAME
     from ORDERS 
     join SERVICE_CATEGORY on SERVICE_CATEGORY_PKID = ORDER_SERVICE_CATEGORY_FKID 
     join SERVICE_TYPE on SERVICE_TYPE_PKID = ORDER_SERVICE_TYPE_FKID 
@@ -1203,6 +1208,8 @@ async function GetAllOrdersWithFiltersForManager(obj) {
     join [dbo].[CUSTOMERS] on [CUSTOMER_PKID] = [ORDER_CUSTOMER_FKID]
     join [dbo].[CUSTOMER_TYPE] on [CUSTOMER_TYPE_PKID] = [CUSTOMER_TYPE_FKID]
     left join COUPONS on [COUPONS_PKID] = [ORDER_COUPON_FKID] left join CUSTOMER_COUPON on CUSTOMER_COUPON_PKID = [ORDER_COUPON_FKID]
+    left join [dbo].[PICKUPS] on [PICKUP_CODE] = [ORDER_IS_PICKUP_ID]
+	 left join [dbo].[DRIVERS] on [DRIVER_PKID] = [PICKUP_DRIVER_FKID]
     where year(ORDER_DATE) = '${obj.Year}' `;
 
     if (
@@ -2547,6 +2554,14 @@ async function UpdateOrderBadDebits(obj) {
   } catch (error) {
     console.log("UpdateOrderBadDebits-->", error);
   }
+}
+
+const SplitDate = (OrderDate) => {
+  const MainDate = OrderDate.split("T");
+  const SplitT = MainDate[0];
+  const OrderDates = SplitT.split("-");
+  const FinalDate = OrderDates[2] + "-" + OrderDates[1] + "-" + OrderDates[0];
+  return FinalDate;
 }
 
 module.exports = {

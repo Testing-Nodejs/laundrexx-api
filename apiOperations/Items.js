@@ -23,6 +23,7 @@ async function GetAllItemCategory() {
 
 async function AddItemCategory(obj) {
   try {
+    console.log(obj)
     var res = false;
     var pool = await sql.connect(config);
 
@@ -283,7 +284,7 @@ async function GetAllItemsForPrice(CatID) {
       .query(
         "select ITEMS.*,SUB_CATEGORY_NAME,ITEM_CATEGORY_NAME,isnull(ITEM_PRICE_TIER_1, '-') as PriceStatus,isnull(ITEM_PRICE_TIER_1, '') as tier1,isnull(ITEM_PRICE_TIER_2, '') as tier2,isnull(ITEM_PRICE_TIER_3, '') as tier3,isnull(ITEM_PRICE_TIER_4, '') as tier4 from ITEMS join ITEM_CATEGORY on ITEM_CATEGORY_PKID =  ITEMS_CATEGORY_FKID join SUB_CATEGORY on ITEMS_SUB_CATEGORY_FKID = SUB_CATEGORY_PKID left join [dbo].[ITEM_PRICE] on [ITEM_PRICE_ITEM_FKID] = [ITEMS_PKID] and ITEM_PRICE_SERVICE_CATEGORY_FKID = '" +
           CatID +
-          "'"
+          "' order by ITEMS_NAME asc"
       );
 
     return result.recordsets[0];
@@ -405,7 +406,7 @@ async function GetAllAdditionalServiceForPrice(CatID) {
           CatID +
           "' where ADDITIONAL_SERVICE_CATEGORY_FKID = '" +
           CatID +
-          "'"
+          "' order by ADDITIONAL_SERVICE_NAME asc"
       );
 
     return result.recordsets[0];

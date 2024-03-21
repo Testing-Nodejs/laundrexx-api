@@ -612,6 +612,10 @@ async function GetAllPickupsByID(obj) {
 
 async function GetAllPickupsFilter(Type, Fdate, Tdate) {
   try {
+
+    console.log(Type);
+    console.log(Fdate);
+    console.log(Tdate);
     let pool = await sql.connect(config);
 
     if (Fdate === "-") {
@@ -636,7 +640,7 @@ async function GetAllPickupsFilter(Type, Fdate, Tdate) {
         var PickupID = result.recordsets[0][i].PICKUP_PKID;
         var CustomerArr = [];
 
-        if (CustomerID === "-" || CustomerID === 0 || CustomerID === "0") {
+        if (CustomerID === "-" || CustomerID === 0 || CustomerID === "0"|| CustomerID === null) {
           let result = await pool
             .request()
             .query(
@@ -689,7 +693,7 @@ async function GetAllPickupsFilter(Type, Fdate, Tdate) {
         let result = await pool
           .request()
           .query(
-            "select * from PICKUPS where PICKUP_DATE between '" +
+            "select PICKUP_STATUS,PICKUP_PKID,PICKUP_CODE,isnull(PICKUP_CUSTOMER_FKID,'-') as PICKUP_CUSTOMER_FKID, isnull(PICKUP_DRIVER_FKID,'-') as PICKUP_DRIVER_FKID ,PICKUP_CUSTOMER_NAME,PICKUP_CUSTOMER_PHONE,PICKUP_ADDRESS,PICKUP_TIME, PICKUP_TIME_1,PICKUP_QUANTITY,PICKUP_BULK_ITEMS,PICKUP_DOOR_DELIVERY, PICKUP_CREATED_BY,isnull(PICKUP_CREATED_BY_FKID, 0) as PICKUP_CREATED_BY_FKID, PICKUP_DATE from PICKUPS where PICKUP_DATE between '" +
               Fdate +
               "' and '" +
               Tdate +
@@ -708,7 +712,7 @@ async function GetAllPickupsFilter(Type, Fdate, Tdate) {
           var PickupID = result.recordsets[0][i].PICKUP_PKID;
           var CustomerArr = [];
 
-          if (CustomerID === "-" || CustomerID === 0 || CustomerID === "0") {
+          if (CustomerID === "-" || CustomerID === 0 || CustomerID === "0" || CustomerID === null) {
             let result = await pool
               .request()
               .query(
@@ -780,7 +784,7 @@ async function GetAllPickupsFilter(Type, Fdate, Tdate) {
           var PickupID = result.recordsets[0][i].PICKUP_PKID;
           var CustomerArr = [];
 
-          if (CustomerID === "-" || CustomerID === 0 || CustomerID === "0") {
+          if (CustomerID === "-" || CustomerID === 0 || CustomerID === "0"|| CustomerID === null) {
             let result = await pool
               .request()
               .query(

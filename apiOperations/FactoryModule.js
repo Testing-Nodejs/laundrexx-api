@@ -23,7 +23,7 @@ async function FactoryViewInTakeOrders(FactoryID) {
       from [dbo].[FACTORY_DC]
       join [dbo].[STORES] on [STORE_PKID] = [FACTORY_DC_OUTLET_FKID]
       join [dbo].[STORE_STAFF] on [STORE_STAFF_PKID] = [FACTORY_DC_STAFF_FKID]
-      where [FACTORY_DC_FACCTORY_FKID] = '${FactoryID}' and [FACTORY_DC_STATUS] = 0`);
+      where [FACTORY_DC_FACCTORY_FKID] = '${FactoryID}' and [FACTORY_DC_STATUS] = 0 and FACTORY_DC_DATE = cast(getdate() as date) order by FACTORY_DC_PKID desc`);
 
     for (var i = 0; i < result.recordsets[0].length; i++) {
       var DCInnerItems = await pool.request()
@@ -210,7 +210,7 @@ async function ViewConfirmedOutletIntake(FactoryID) {
       join [dbo].[STORES] on [STORE_PKID] = [FACTORY_DC_OUTLET_FKID]
       join [dbo].[STORE_STAFF] on [STORE_STAFF_PKID] = [FACTORY_DC_STAFF_FKID]
       join FACTORY_INVENTORY on FACTORY_INVENTORY_RECEIVED_DC_FKID = FACTORY_DC_PKID and FACTORY_INVENTORY_RECEIVED_FROM = 'Outlet'
-      where [FACTORY_DC_FACCTORY_FKID] = '${FactoryID}' and [FACTORY_DC_STATUS] = 1`);
+      where [FACTORY_DC_FACCTORY_FKID] = '${FactoryID}' and [FACTORY_DC_STATUS] = 1 and FACTORY_DC_DATE = cast(getdate() as date) order by FACTORY_DC_PKID desc`);
 
     for (var i = 0; i < result.recordsets[0].length; i++) {
       var DCInnerItems = await pool.request()
@@ -634,7 +634,7 @@ async function ViewConfirmedFactoryIntake(FactoryID) {
             join [dbo].[FACTORY] tf on tf.[FACTORY_PKID] = [FACTORY_TO_FACTORY_DC_TO_FACTORY_FKID]
             join [dbo].[FACTORY_STAFF] on [FACTORY_STAFF_PKID] = [FACTORY_TO_FACTORY_DC_STAFF_FKID]
             join FACTORY_INVENTORY on FACTORY_INVENTORY_RECEIVED_DC_FKID = FACTORY_TO_FACTORY_DC_PKID and FACTORY_INVENTORY_RECEIVED_FROM = 'Factory'
-      where [FACTORY_TO_FACTORY_DC_TO_FACTORY_FKID] = '${FactoryID}' and [FACTORY_TO_FACTORY_DC_STATUS] = 1`);
+      where [FACTORY_TO_FACTORY_DC_TO_FACTORY_FKID] = '${FactoryID}' and [FACTORY_TO_FACTORY_DC_STATUS] = 1 and FACTORY_TO_FACTORY_DC_DATE = cast(getdate() as date) order by FACTORY_TO_FACTORY_DC_PKID desc`);
 
     for (var i = 0; i < result.recordsets[0].length; i++) {
       var DCInnerItems = await pool.request()

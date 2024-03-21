@@ -73,7 +73,7 @@ app.use(
 
 app.use(cors());
 
-// app.options("*", cors());
+app.options("*", cors());
 
 app.use(cors({ origin: true, credentials: true }));
 app.use(function (req, res, next) {
@@ -1939,6 +1939,16 @@ router.get(
   }
 );
 
+router.route("/GetOrderByOrderNumberForIntake").post(async (req, res) => {
+  let obj = {
+    ...req.body,
+  };
+
+  await OutletIntake.GetOrderDetailsByOrderNumberForIntake(obj).then((data) => {
+    res.status(201).json(data);
+  });
+});
+
 router
   .route("/ViewOutletDCForIntakeWithoutFactoryFilter")
   .post(async (req, res) => {
@@ -1964,6 +1974,16 @@ router.route("/GetDCFromFactoryWithFilter").post(async (req, res) => {
 router.get("/OutletConfirmIntake/:DcPkid", async (req, res) => {
   await OutletIntake.OutletConfirmIntake(req.params.DcPkid).then((data) => {
     res.json(data);
+  });
+});
+
+router.route("/OutletConfirmIntakeWithoutDC").post(async (req, res) => {
+  let obj = {
+    ...req.body,
+  };
+
+  await OutletIntake.OutletConfirmIntakeWithoutDC(obj).then((data) => {
+    res.status(201).json(data);
   });
 });
 
@@ -2156,12 +2176,32 @@ router.get("/GetOrdersListByPhoneNumber/:CustomerPhone", async (req, res) => {
   });
 });
 
+router.route("/GetOrdersListByOrderNumber").post(async (req, res) => {
+  let obj = {
+    ...req.body,
+  };
+
+  await OutletOrderDelivery.GetOrdersListByOrderNumber(obj).then((data) => {
+    res.status(201).json(data);
+  });
+});
+
 router.route("/ConfirmDelivery").post(async (req, res) => {
   let obj = {
     ...req.body,
   };
 
   await OutletOrderDelivery.ConfirmDelivery(obj).then((data) => {
+    res.status(201).json(data);
+  });
+});
+
+router.route("/ConfirmDeliveryByQR").post(async (req, res) => {
+  let obj = {
+    ...req.body,
+  };
+
+  await OutletOrderDelivery.ConfirmDeliveryByQR(obj).then((data) => {
     res.status(201).json(data);
   });
 });
@@ -2662,7 +2702,7 @@ router.get("/SampleMailTest", async (req, res) => {
 var port = process.env.PORT;
 
 const server = app.listen(port, () =>
-  console.log("API is runnning at http://localhost:" + port)
+  console.log("API is runnning at PORT Number :" + port)
 );
 
 process.on("SIGTERM", () => {
