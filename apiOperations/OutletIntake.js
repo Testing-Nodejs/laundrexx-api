@@ -17,8 +17,8 @@ var transporter = nodemailer.createTransport(
     service: "gmail",
     host: "smtp.gmail.com",
     auth: {
-      user: process.env.EMAIL,
-      pass: process.env.PASS,
+      user: "testing.vss12@gmail.com",
+      pass: "zagoeiuaybmrraww",
     },
   })
 );
@@ -283,10 +283,10 @@ async function OutletConfirmIntake(DCID) {
 
           var options = {
             method: "POST",
-            url: process.env.SMSCOUNTRY_URL,
+            url: "https://restapi.smscountry.com/v0.1/Accounts/AjRDjfKkvWUCxoP4wV5P/SMSes/",
             headers: {
               "Content-Type": "application/json",
-              Authorization: process.env.SMSCOUNTRY_AUTHKEY,
+              Authorization: 'Basic QWpSRGpmS2t2V1VDeG9QNHdWNVA6bzdQWU4yMWEzRjhZT3RmTHdDZlRWVXBYMUlPSUxKM0o2a0p1aGdzbQ==',
             },
             body: JSON.stringify({
               Text: `Your order ${CustomerDetails.recordsets[0][z].ORDER_ORDER_NUMBER} is ready for pickup.Your order amount is Rs.${CustomerDetails.recordsets[0][z].ORDER_FINAL_ORDER_AMOUNT}. Please present your pickup code - ${DeliveryCode.recordsets[0][0].DeliveryCode} during collection. Thank you -Laundrexx`,
@@ -306,7 +306,7 @@ async function OutletConfirmIntake(DCID) {
           });
 
           var mailOptions = {
-            from: process.env.EMAIL,
+            from: "testing.vss12@gmail.com",
             to: CustomerDetails.recordsets[0][z].CUSTOMER_EMAIL,
             subject: "Your Order Is Ready For Pickup!",
             html: `<html><head>
@@ -381,10 +381,10 @@ async function OutletConfirmIntakeWithoutDC(obj) {
 
         var options = {
           method: "POST",
-          url: process.env.SMSCOUNTRY_URL,
+          url: "https://restapi.smscountry.com/v0.1/Accounts/AjRDjfKkvWUCxoP4wV5P/SMSes/",
           headers: {
             "Content-Type": "application/json",
-            Authorization: process.env.SMSCOUNTRY_AUTHKEY,
+            Authorization: 'Basic QWpSRGpmS2t2V1VDeG9QNHdWNVA6bzdQWU4yMWEzRjhZT3RmTHdDZlRWVXBYMUlPSUxKM0o2a0p1aGdzbQ==',
           },
           body: JSON.stringify({
             Text: `Your order ${CustomerDetails.recordsets[0][0].ORDER_ORDER_NUMBER} is ready for pickup.Your order amount is Rs.${CustomerDetails.recordsets[0][0].ORDER_FINAL_ORDER_AMOUNT}. Please present your pickup code - ${DeliveryCode.recordsets[0][0].DeliveryCode} during collection. Thank you -Laundrexx`,
@@ -404,7 +404,7 @@ async function OutletConfirmIntakeWithoutDC(obj) {
         });
 
         var mailOptions = {
-          from: process.env.EMAIL,
+          from: "testing.vss12@gmail.com",
           to: CustomerDetails.recordsets[0][0].CUSTOMER_EMAIL,
           subject: "Your Order Is Ready For Pickup!",
           html: `<html><head>

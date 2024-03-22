@@ -19,8 +19,8 @@ var transporter = nodemailer.createTransport(
     service: "gmail",
     host: "smtp.gmail.com",
     auth: {
-      user: process.env.EMAIL,
-      pass: process.env.PASS,
+      user: "testing.vss12@gmail.com",
+      pass: "zagoeiuaybmrraww",
     },
   })
 );
@@ -29,10 +29,10 @@ async function SampleMailTest() {
   try {
     var options = {
       method: "POST",
-      url: process.env.SMSCOUNTRY_URL,
+      url: "https://restapi.smscountry.com/v0.1/Accounts/AjRDjfKkvWUCxoP4wV5P/SMSes/",
       headers: {
         "Content-Type": "application/json",
-        Authorization: process.env.SMSCOUNTRY_AUTHKEY,
+        Authorization: 'Basic QWpSRGpmS2t2V1VDeG9QNHdWNVA6bzdQWU4yMWEzRjhZT3RmTHdDZlRWVXBYMUlPSUxKM0o2a0p1aGdzbQ==',
       },
       body: JSON.stringify({
         Text: "Welcome to the world of Laundrexx! Your OTP for account creation is 433330. Enter this code to create your account. We're excited to have you on board! -Laundrexx",
@@ -371,10 +371,10 @@ async function OutletPlaceOrder(obj) {
 
         var options = {
           method: "POST",
-          url: process.env.SMSCOUNTRY_URL,
+          url: "https://restapi.smscountry.com/v0.1/Accounts/AjRDjfKkvWUCxoP4wV5P/SMSes/",
           headers: {
             "Content-Type": "application/json",
-            Authorization: process.env.SMSCOUNTRY_AUTHKEY,
+            Authorization: 'Basic QWpSRGpmS2t2V1VDeG9QNHdWNVA6bzdQWU4yMWEzRjhZT3RmTHdDZlRWVXBYMUlPSUxKM0o2a0p1aGdzbQ==',
           },
           body: JSON.stringify({
             Text: `Your order ${obj.ORDER_ORDER_NUMBER} is confirmed. Your order due date is ${SplitDate(obj.ORDER_DUE_DATE)}. We'll text you when your order is ready. If you have any question, contact us at +91 938-000-0005 -Laundrexx`,
@@ -393,7 +393,7 @@ async function OutletPlaceOrder(obj) {
         });
 
         var mailOptions = {
-          from: process.env.EMAIL,
+          from: "testing.vss12@gmail.com",
           to: CustomerDetails.recordsets[0][0].CUSTOMER_EMAIL,
           subject: "Order Confirmation!",
           html: `<html><head>

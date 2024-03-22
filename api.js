@@ -2699,7 +2699,7 @@ router.get("/SampleMailTest", async (req, res) => {
 });
 
 // -------END----------------------------------------------------//
-var port = process.env.PORT;
+var port = process.env.PORT || 7760;
 
 const server = app.listen(port, () =>
   console.log("API is runnning at PORT Number :" + port)

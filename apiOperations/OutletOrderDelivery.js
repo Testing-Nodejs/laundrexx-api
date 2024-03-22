@@ -17,8 +17,8 @@ var transporter = nodemailer.createTransport(
     service: "gmail",
     host: "smtp.gmail.com",
     auth: {
-      user: process.env.EMAIL,
-      pass: process.env.PASS,
+      user: "testing.vss12@gmail.com",
+      pass: "zagoeiuaybmrraww",
     },
   })
 );
@@ -61,10 +61,10 @@ async function SendOTP(OutletID, PhoneNumber) {
             );
           var options = {
             method: "POST",
-            url: process.env.SMSCOUNTRY_URL,
+            url: "https://restapi.smscountry.com/v0.1/Accounts/AjRDjfKkvWUCxoP4wV5P/SMSes/",
             headers: {
               "Content-Type": "application/json",
-              Authorization: process.env.SMSCOUNTRY_AUTHKEY,
+              Authorization: 'Basic QWpSRGpmS2t2V1VDeG9QNHdWNVA6bzdQWU4yMWEzRjhZT3RmTHdDZlRWVXBYMUlPSUxKM0o2a0p1aGdzbQ==',
             },
             body: JSON.stringify({
               Text: `Dear customer, your OTP for order pickup is ${CustOTP1} . Please share this code with your Laundrexx associate to complete the verification. Thank you. -Laundrexx`,
@@ -83,7 +83,7 @@ async function SendOTP(OutletID, PhoneNumber) {
           });
 
           var mailOptions = {
-            from: process.env.EMAIL,
+            from: "testing.vss12@gmail.com",
             to: result.recordsets[0][0].CUSTOMER_EMAIL,
             subject: "OTP For Order Delivery!",
             html: `<html><head>
@@ -123,10 +123,10 @@ async function SendOTP(OutletID, PhoneNumber) {
 
           var options = {
             method: "POST",
-            url: process.env.SMSCOUNTRY_URL,
+            url: "https://restapi.smscountry.com/v0.1/Accounts/AjRDjfKkvWUCxoP4wV5P/SMSes/",
             headers: {
               "Content-Type": "application/json",
-              Authorization: process.env.SMSCOUNTRY_AUTHKEY,
+              Authorization: 'Basic QWpSRGpmS2t2V1VDeG9QNHdWNVA6bzdQWU4yMWEzRjhZT3RmTHdDZlRWVXBYMUlPSUxKM0o2a0p1aGdzbQ==',
             },
             body: JSON.stringify({
               Text: `Dear customer, your OTP for order pickup is ${CustOtp} . Please share this code with your Laundrexx associate to complete the verification. Thank you. -Laundrexx`,
@@ -144,7 +144,7 @@ async function SendOTP(OutletID, PhoneNumber) {
           });
 
           var mailOptions = {
-            from: process.env.EMAIL,
+            from: "testing.vss12@gmail.com",
             to: result.recordsets[0][0].CUSTOMER_EMAIL,
             subject: "OTP For Order Delivery!",
             html: `<html><head>
@@ -346,10 +346,10 @@ async function ConfirmDelivery(obj) {
 
           var options = {
             method: "POST",
-            url: process.env.SMSCOUNTRY_URL,
+            url: "https://restapi.smscountry.com/v0.1/Accounts/AjRDjfKkvWUCxoP4wV5P/SMSes/",
             headers: {
               "Content-Type": "application/json",
-              Authorization: process.env.SMSCOUNTRY_AUTHKEY,
+              Authorization: 'Basic QWpSRGpmS2t2V1VDeG9QNHdWNVA6bzdQWU4yMWEzRjhZT3RmTHdDZlRWVXBYMUlPSUxKM0o2a0p1aGdzbQ==',
             },
             body: JSON.stringify({
               Text: `Your order ${obj.OrderList[i].ORDER_ORDER_NUMBER} is complete! We hope you're delighted with our services.Thank you for choosing Laundrexx. We look forward to serving you again soon!`,
@@ -367,7 +367,7 @@ async function ConfirmDelivery(obj) {
           });
 
           var mailOptions = {
-            from: process.env.EMAIL,
+            from: "testing.vss12@gmail.com",
             to: result.recordsets[0][0].CUSTOMER_EMAIL,
             subject: "Order Delivered!",
             html: `<html><head>
@@ -449,10 +449,10 @@ async function ConfirmDeliveryByQR(obj) {
 
           var options = {
             method: "POST",
-            url: process.env.SMSCOUNTRY_URL,
+            url: "https://restapi.smscountry.com/v0.1/Accounts/AjRDjfKkvWUCxoP4wV5P/SMSes/",
             headers: {
               "Content-Type": "application/json",
-              Authorization: process.env.SMSCOUNTRY_AUTHKEY,
+              Authorization: 'Basic QWpSRGpmS2t2V1VDeG9QNHdWNVA6bzdQWU4yMWEzRjhZT3RmTHdDZlRWVXBYMUlPSUxKM0o2a0p1aGdzbQ==',
             },
             body: JSON.stringify({
               Text: `Your order ${obj.OrderList[i].ORDER_ORDER_NUMBER} is complete! We hope you're delighted with our services.Thank you for choosing Laundrexx. We look forward to serving you again soon!`,
@@ -470,7 +470,7 @@ async function ConfirmDeliveryByQR(obj) {
           });
 
           var mailOptions = {
-            from: process.env.EMAIL,
+            from: "testing.vss12@gmail.com",
             to: result.recordsets[0][0].CUSTOMER_EMAIL,
             subject: "Order Delivered!",
             html: `<html><head>
