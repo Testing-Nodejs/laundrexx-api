@@ -18,7 +18,7 @@ const config = {
   // connectionLimit: 100,
   // user: "sa",
   // password: "vss",
-  // server: "localhost",
+  // server: "192.168.1.10",
   // database: "Laundrexx",
 
   pool: {
