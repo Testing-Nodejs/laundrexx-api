@@ -16,8 +16,8 @@ var transporter = nodemailer.createTransport(
     service: "gmail",
     host: "smtp.gmail.com",
     auth: {
-      user: "testing.vss12@gmail.com",
-      pass: "zagoeiuaybmrraww",
+      user: "order-update@laundrexx.com",
+      pass: "gxdlqqpafkvszhly",
     },
   })
 );
@@ -62,7 +62,7 @@ async function forgotPassword(obj) {
       console.log("OTP IS :", resOtp);
       if (insertOTP.rowsAffected == 1) {
         var mailOptions = {
-          from: "testing.vss12@gmail.com",
+          from: "order-update@laundrexx.com",
           to: obj.FORGET_PASSWORD_EMAIL,
           subject: "Forget Password OTP",
           html: `<div style="font-family: Helvetica,Arial,sans-serif;min-width:1000px;overflow:auto;line-height:2"><div style="margin:50px auto;width:70%;padding:20px 0">
@@ -177,7 +177,7 @@ async function MemberCouponsToMail(Email) {
         "%</td></tr>";
     }
     var mailOptions = {
-      from: "testing.vss12@gmail.com",
+      from: "order-update@laundrexx.com",
       to: Email,
       subject: "Coupon Details",
       html: `<htm><head><style>
@@ -252,7 +252,7 @@ async function SendMailForSubscribers() {
     var resultInnerrr = resultInner.recordsets[0];
     for (var i = 0; i < resultInnerrr.length; i++) {
       var mailOptions = {
-        from: "testing.vss12@gmail.com",
+        from: "order-update@laundrexx.com",
         to: resultInnerrr[i].SUBSCRIBED_USERS_EMAIL,
         subject: "Subscription Notification",
         html: `<htm><head><style>
@@ -345,7 +345,7 @@ async function SendMailForScienceSubscribers() {
     console.log(resultInner.recordsets[0]);
     for (var i = 0; i < resultInnerrr.length; i++) {
       var mailOptions = {
-        from: "testing.vss12@gmail.com",
+        from: "order-update@laundrexx.com",
         to: resultInnerrr[i].SUBSCRIBED_USERS_EMAIL,
         subject: "Science Subscription Notification",
         html: `<htm><head><style>
@@ -441,7 +441,7 @@ async function SendMailForScienceSubscribersupdate() {
     console.log(resultInner.recordsets[0]);
     for (var i = 0; i < resultInnerrr.length; i++) {
       var mailOptions = {
-        from: "testing.vss12@gmail.com",
+        from: "order-update@laundrexx.com",
         to: resultInnerrr[i].SUBSCRIBED_USERS_EMAIL,
         subject: "Science Subscription Notification",
         html: `<htm><head><style>

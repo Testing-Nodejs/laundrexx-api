@@ -17,8 +17,8 @@ var transporter = nodemailer.createTransport(
     service: "gmail",
     host: "smtp.gmail.com",
     auth: {
-      user: "testing.vss12@gmail.com",
-      pass: "zagoeiuaybmrraww",
+      user: "order-update@laundrexx.com",
+      pass: "gxdlqqpafkvszhly",
     },
   })
 );
@@ -83,7 +83,7 @@ async function SendOTP(OutletID, PhoneNumber) {
           });
 
           var mailOptions = {
-            from: "testing.vss12@gmail.com",
+            from: "order-update@laundrexx.com",
             to: result.recordsets[0][0].CUSTOMER_EMAIL,
             subject: "OTP For Order Delivery!",
             html: `<html><head>
@@ -144,7 +144,7 @@ async function SendOTP(OutletID, PhoneNumber) {
           });
 
           var mailOptions = {
-            from: "testing.vss12@gmail.com",
+            from: "order-update@laundrexx.com",
             to: result.recordsets[0][0].CUSTOMER_EMAIL,
             subject: "OTP For Order Delivery!",
             html: `<html><head>
@@ -367,7 +367,7 @@ async function ConfirmDelivery(obj) {
           });
 
           var mailOptions = {
-            from: "testing.vss12@gmail.com",
+            from: "order-update@laundrexx.com",
             to: result.recordsets[0][0].CUSTOMER_EMAIL,
             subject: "Order Delivered!",
             html: `<html><head>
@@ -470,7 +470,7 @@ async function ConfirmDeliveryByQR(obj) {
           });
 
           var mailOptions = {
-            from: "testing.vss12@gmail.com",
+            from: "order-update@laundrexx.com",
             to: result.recordsets[0][0].CUSTOMER_EMAIL,
             subject: "Order Delivered!",
             html: `<html><head>

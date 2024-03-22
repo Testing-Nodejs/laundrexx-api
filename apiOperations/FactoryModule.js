@@ -19,7 +19,7 @@ async function FactoryViewInTakeOrders(FactoryID) {
     let pool = await sql.connect(config);
 
     var result = await pool.request()
-      .query(`select [FACTORY_DC_TOTAL_BAGS],[FACTORY_DC_PKID],[STORE_ID], [STORE_CODE], [STORE_NAME], [STORE_CITY], [STORE_PHONE], [STORE_STAFF_NAME], [STORE_STAFF_PHONE], [FACTORY_DC_DATE], [FACTORY_DC_NUMBER], [FACTORY_DC_ORDER_COUNT], (select sum(cast(ORDER_ITEMS as int)) from [dbo].[FACTORY_DC_ITEMS] join [dbo].[ORDERS] on [ORDER_PKID] = [FACTORY_DC_ITEMS_ORDER_FKID] where [FACTORY_DC_ITEMS_DC_FKID] = FACTORY_DC_PKID) as TotalQuantity
+      .query(`select [FACTORY_DC_TOTAL_BAGS],[FACTORY_DC_PKID],[STORE_ID], [STORE_CODE], [STORE_NAME], [STORE_CITY], [STORE_PHONE], [STORE_STAFF_NAME], [STORE_STAFF_PHONE], [FACTORY_DC_DATE], [FACTORY_DC_NUMBER], [FACTORY_DC_ORDER_COUNT], (select sum(ORDER_ITEM_COUNT) from [dbo].[ORDER_ITEMS] join [dbo].[ORDERS] oi on oi.[ORDER_PKID] = [ORDER_ITEM_ORDER_FKID] join [dbo].[FACTORY_DC_ITEMS] on oi.[ORDER_PKID] = [FACTORY_DC_ITEMS_ORDER_FKID] where [FACTORY_DC_ITEMS_DC_FKID] = FACTORY_DC_PKID) as TotalQuantity
       from [dbo].[FACTORY_DC]
       join [dbo].[STORES] on [STORE_PKID] = [FACTORY_DC_OUTLET_FKID]
       join [dbo].[STORE_STAFF] on [STORE_STAFF_PKID] = [FACTORY_DC_STAFF_FKID]
@@ -27,7 +27,7 @@ async function FactoryViewInTakeOrders(FactoryID) {
 
     for (var i = 0; i < result.recordsets[0].length; i++) {
       var DCInnerItems = await pool.request()
-        .query(`select [ORDER_PKID], [ORDER_DATE],[ORDER_ORDER_NUMBER], [ORDER_INVOICE_NUMBER],[ORDER_DUE_DATE],[ORDER_GRAND_TOTAL_AMOUNT],[ORDER_QR],ORDER_ITEMS
+        .query(`select [ORDER_PKID], [ORDER_DATE],[ORDER_ORDER_NUMBER], [ORDER_INVOICE_NUMBER],[ORDER_DUE_DATE],[ORDER_GRAND_TOTAL_AMOUNT],[ORDER_QR],(select sum(ORDER_ITEM_COUNT) from [dbo].[ORDER_ITEMS] where [ORDER_ITEM_ORDER_FKID] = [ORDER_PKID]) as ORDER_ITEMS
         from [dbo].[FACTORY_DC_ITEMS]
         join [dbo].[ORDERS] on [ORDER_PKID] = [FACTORY_DC_ITEMS_ORDER_FKID]
         where [FACTORY_DC_ITEMS_DC_FKID] = '${result.recordsets[0][i].FACTORY_DC_PKID}'`);
@@ -66,7 +66,7 @@ async function FactoryViewInTakeOrdersFilter(obj) {
 
     let pool = await sql.connect(config);
 
-    var MyQuery = `select [FACTORY_DC_TOTAL_BAGS],[FACTORY_DC_PKID],[STORE_ID], [STORE_CODE], [STORE_NAME], [STORE_CITY], [STORE_PHONE], [STORE_STAFF_NAME], [STORE_STAFF_PHONE], [FACTORY_DC_DATE], [FACTORY_DC_NUMBER], [FACTORY_DC_ORDER_COUNT], (select sum(cast(ORDER_ITEMS as int)) from [dbo].[FACTORY_DC_ITEMS] join [dbo].[ORDERS] on [ORDER_PKID] = [FACTORY_DC_ITEMS_ORDER_FKID] where [FACTORY_DC_ITEMS_DC_FKID] = FACTORY_DC_PKID) as TotalQuantity
+    var MyQuery = `select [FACTORY_DC_TOTAL_BAGS],[FACTORY_DC_PKID],[STORE_ID], [STORE_CODE], [STORE_NAME], [STORE_CITY], [STORE_PHONE], [STORE_STAFF_NAME], [STORE_STAFF_PHONE], [FACTORY_DC_DATE], [FACTORY_DC_NUMBER], [FACTORY_DC_ORDER_COUNT], (select sum(ORDER_ITEM_COUNT) from [dbo].[ORDER_ITEMS] join [dbo].[ORDERS] oi on oi.[ORDER_PKID] = [ORDER_ITEM_ORDER_FKID] join [dbo].[FACTORY_DC_ITEMS] on oi.[ORDER_PKID] = [FACTORY_DC_ITEMS_ORDER_FKID] where [FACTORY_DC_ITEMS_DC_FKID] = FACTORY_DC_PKID) as TotalQuantity
     from [dbo].[FACTORY_DC]
     join [dbo].[STORES] on [STORE_PKID] = [FACTORY_DC_OUTLET_FKID]
     join [dbo].[STORE_STAFF] on [STORE_STAFF_PKID] = [FACTORY_DC_STAFF_FKID]
@@ -83,7 +83,7 @@ async function FactoryViewInTakeOrdersFilter(obj) {
       var result3 = await pool.request().query(MyQuery);
       for (var i = 0; i < result3.recordsets[0].length; i++) {
         var DCInnerItems = await pool.request()
-          .query(`select [ORDER_PKID], [ORDER_DATE],[ORDER_ORDER_NUMBER], [ORDER_INVOICE_NUMBER],[ORDER_DUE_DATE],[ORDER_GRAND_TOTAL_AMOUNT],[ORDER_QR],ORDER_ITEMS
+          .query(`select [ORDER_PKID], [ORDER_DATE],[ORDER_ORDER_NUMBER], [ORDER_INVOICE_NUMBER],[ORDER_DUE_DATE],[ORDER_GRAND_TOTAL_AMOUNT],[ORDER_QR],(select sum(ORDER_ITEM_COUNT) from [dbo].[ORDER_ITEMS] where [ORDER_ITEM_ORDER_FKID] = [ORDER_PKID]) as ORDER_ITEMS
           from [dbo].[FACTORY_DC_ITEMS]
           join [dbo].[ORDERS] on [ORDER_PKID] = [FACTORY_DC_ITEMS_ORDER_FKID]
           where [FACTORY_DC_ITEMS_DC_FKID] = '${result3.recordsets[0][i].FACTORY_DC_PKID}'`);
@@ -129,7 +129,7 @@ async function FactoryViewInTakeOrdersFilter(obj) {
       var result4 = await pool.request().query(MyQuery);
       for (var i = 0; i < result4.recordsets[0].length; i++) {
         var DCInnerItems = await pool.request()
-          .query(`select [ORDER_PKID], [ORDER_DATE],[ORDER_ORDER_NUMBER], [ORDER_INVOICE_NUMBER],[ORDER_DUE_DATE],[ORDER_GRAND_TOTAL_AMOUNT],[ORDER_QR],ORDER_ITEMS
+          .query(`select [ORDER_PKID], [ORDER_DATE],[ORDER_ORDER_NUMBER], [ORDER_INVOICE_NUMBER],[ORDER_DUE_DATE],[ORDER_GRAND_TOTAL_AMOUNT],[ORDER_QR],(select sum(ORDER_ITEM_COUNT) from [dbo].[ORDER_ITEMS] where [ORDER_ITEM_ORDER_FKID] = [ORDER_PKID]) as ORDER_ITEMS
           from [dbo].[FACTORY_DC_ITEMS]
           join [dbo].[ORDERS] on [ORDER_PKID] = [FACTORY_DC_ITEMS_ORDER_FKID]
           where [FACTORY_DC_ITEMS_DC_FKID] = '${result4.recordsets[0][i].FACTORY_DC_PKID}'`);

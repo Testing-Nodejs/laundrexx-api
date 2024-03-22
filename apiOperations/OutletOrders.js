@@ -19,71 +19,72 @@ var transporter = nodemailer.createTransport(
     service: "gmail",
     host: "smtp.gmail.com",
     auth: {
-      user: "testing.vss12@gmail.com",
-      pass: "zagoeiuaybmrraww",
+      user: "order-update@laundrexx.com",
+      pass: "gxdlqqpafkvszhly",
+      // EmailPassWord: "LXOrderUpdate25*"
     },
   })
 );
 
 async function SampleMailTest() {
   try {
-    var options = {
-      method: "POST",
-      url: "https://restapi.smscountry.com/v0.1/Accounts/AjRDjfKkvWUCxoP4wV5P/SMSes/",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: 'Basic QWpSRGpmS2t2V1VDeG9QNHdWNVA6bzdQWU4yMWEzRjhZT3RmTHdDZlRWVXBYMUlPSUxKM0o2a0p1aGdzbQ==',
-      },
-      body: JSON.stringify({
-        Text: "Welcome to the world of Laundrexx! Your OTP for account creation is 433330. Enter this code to create your account. We're excited to have you on board! -Laundrexx",
-        Number: "919591769165",
-        SenderId: "LNDREX",
-        DRNotifyUrl: "https://www.domainname.com/notifyurl",
-        DRNotifyHttpMethod: "POST",
-        Tool: "API",
-      }),
-    };
-    request(options, function (error, response) {
-      if (error) throw new Error(error);
-      console.log(response.body);
-    });
-
-    // var mailOptions = {
-    //   from: process.env.EMAIL,
-    //   to: "jafaraftab15011@gmail.com",
-    //   // cc: "",
-    //   attachments: [
-    //     {
-    //       // utf-8 string as an attachment
-    //       filename: "text1.pdf",
-    //       content: `<html><head>
-    //       <style>
-
-    // </style></head>
-    // <div style="font-family: Helvetica,Arial,sans-serif;min-width:1000px;overflow:auto;line-height:2"><div style="margin:50px auto;width:70%;padding:20px 0">
-    //                 <div style="border-bottom:1px solid #eee">
-    //                   <a href="https://laundrexx.com/" style="font-size:1.4em;color: #00466a;text-decoration:none;font-weight:600">Laundrexx Fabric Care India Pvt Ltd</a>
-    //                 </div>
-    //                 <p style="font-size: 16px;color: black;font-weight: 600;">Dear Customer,</p>
-    //                 <p style="font-size: 14px;color: black;">Your order <b>( D17-0002-24 )</b> is confirmed.</p>
-    //                 <p style="font-size: 14px;color: black;">Your order due date is <b>2024-02-29</b>. We'll text you when your order is ready. </p>
-    //                 <p style="font-size: 14px;color: black;">If you have any question, contact us at <b>+91 938-000-0005</b> -Laundrexx</p>
-    //               </div>
-    //               </html>`,
-    //       contentType: "application/pdf",
-    //     },
-    //   ],
-    //   subject: "Order Confirmation!",
-    //   // html: ,
+    // var options = {
+    //   method: "POST",
+    //   url: "https://restapi.smscountry.com/v0.1/Accounts/AjRDjfKkvWUCxoP4wV5P/SMSes/",
+    //   headers: {
+    //     "Content-Type": "application/json",
+    //     Authorization: 'Basic QWpSRGpmS2t2V1VDeG9QNHdWNVA6bzdQWU4yMWEzRjhZT3RmTHdDZlRWVXBYMUlPSUxKM0o2a0p1aGdzbQ==',
+    //   },
+    //   body: JSON.stringify({
+    //     Text: "Welcome to the world of Laundrexx! Your OTP for account creation is 433330. Enter this code to create your account. We're excited to have you on board! -Laundrexx",
+    //     Number: "919591769165",
+    //     SenderId: "LNDREX",
+    //     DRNotifyUrl: "https://www.domainname.com/notifyurl",
+    //     DRNotifyHttpMethod: "POST",
+    //     Tool: "API",
+    //   }),
     // };
-
-    // transporter.sendMail(mailOptions, function (error, info) {
-    //   if (error) {
-    //     console.log(error);
-    //   } else {
-    //     console.log("Email sent: " + info.response);
-    //   }
+    // request(options, function (error, response) {
+    //   if (error) throw new Error(error);
+    //   console.log(response.body);
     // });
+
+    var mailOptions = {
+      from: "order-update@laundrexx.com",
+      to: "jafaraftab15011@gmail.com",
+      // cc: "",
+      attachments: [
+        {
+          // utf-8 string as an attachment
+          filename: "text1.pdf",
+          content: `<html><head>
+          <style>
+
+    </style></head>
+    <div style="font-family: Helvetica,Arial,sans-serif;min-width:1000px;overflow:auto;line-height:2"><div style="margin:50px auto;width:70%;padding:20px 0">
+                    <div style="border-bottom:1px solid #eee">
+                      <a href="https://laundrexx.com/" style="font-size:1.4em;color: #00466a;text-decoration:none;font-weight:600">Laundrexx Fabric Care India Pvt Ltd</a>
+                    </div>
+                    <p style="font-size: 16px;color: black;font-weight: 600;">Dear Customer,</p>
+                    <p style="font-size: 14px;color: black;">Your order <b>( D17-0002-24 )</b> is confirmed.</p>
+                    <p style="font-size: 14px;color: black;">Your order due date is <b>2024-02-29</b>. We'll text you when your order is ready. </p>
+                    <p style="font-size: 14px;color: black;">If you have any question, contact us at <b>+91 938-000-0005</b> -Laundrexx</p>
+                  </div>
+                  </html>`,
+          contentType: "application/pdf",
+        },
+      ],
+      subject: "Order Confirmation!",
+      // html: ,
+    };
+
+    transporter.sendMail(mailOptions, function (error, info) {
+      if (error) {
+        console.log(error);
+      } else {
+        console.log("Email sent: " + info.response);
+      }
+    });
   } catch (error) {
     console.log("GetDueDate-->", error);
   }
@@ -374,26 +375,33 @@ async function OutletPlaceOrder(obj) {
           url: "https://restapi.smscountry.com/v0.1/Accounts/AjRDjfKkvWUCxoP4wV5P/SMSes/",
           headers: {
             "Content-Type": "application/json",
-            Authorization: 'Basic QWpSRGpmS2t2V1VDeG9QNHdWNVA6bzdQWU4yMWEzRjhZT3RmTHdDZlRWVXBYMUlPSUxKM0o2a0p1aGdzbQ==',
+            Authorization:
+              "Basic QWpSRGpmS2t2V1VDeG9QNHdWNVA6bzdQWU4yMWEzRjhZT3RmTHdDZlRWVXBYMUlPSUxKM0o2a0p1aGdzbQ==",
           },
           body: JSON.stringify({
-            Text: `Your order ${obj.ORDER_ORDER_NUMBER} is confirmed. Your order due date is ${SplitDate(obj.ORDER_DUE_DATE)}. We'll text you when your order is ready. If you have any question, contact us at +91 938-000-0005 -Laundrexx`,
+            Text: `Your order ${
+              obj.ORDER_ORDER_NUMBER
+            } is confirmed. Your order due date is ${SplitDate(
+              obj.ORDER_DUE_DATE
+            )}. We'll text you when your order is ready. If you have any question, contact us at +91 938-000-0005 -Laundrexx`,
             Number:
-              "91" + CustomerDetails.recordsets[0][0].CUSTOMER_CONTACT_NUMBER + "",
+              "91" +
+              CustomerDetails.recordsets[0][0].CUSTOMER_CONTACT_NUMBER +
+              "",
             SenderId: "LNDREX",
             DRNotifyUrl: "https://www.domainname.com/notifyurl",
             DRNotifyHttpMethod: "POST",
             Tool: "API",
           }),
         };
-        console.log(options)
+        console.log(options);
         request(options, function (error, response) {
           if (error) throw new Error(error);
           console.log(response.body);
         });
 
         var mailOptions = {
-          from: "testing.vss12@gmail.com",
+          from: "order-update@laundrexx.com",
           to: CustomerDetails.recordsets[0][0].CUSTOMER_EMAIL,
           subject: "Order Confirmation!",
           html: `<html><head>
@@ -404,9 +412,15 @@ async function OutletPlaceOrder(obj) {
                           <div style="border-bottom:1px solid #eee">
                             <a href="https://laundrexx.com/" style="font-size:1.4em;color: #00466a;text-decoration:none;font-weight:600">Laundrexx Fabric Care India Pvt Ltd</a>
                           </div>
-                          <p style="font-size: 16px;color: black;font-weight: 600;">Dear ${CustomerDetails.recordsets[0][0].CUSTOMER_NAME},</p>
-                          <p style="font-size: 14px;color: black;">Your order <b>( ${obj.ORDER_ORDER_NUMBER} )</b> is confirmed.</p>
-                          <p style="font-size: 14px;color: black;">Your order due date is <b>${SplitDate(obj.ORDER_DUE_DATE)}</b>. We'll text you when your order is ready. </p>
+                          <p style="font-size: 16px;color: black;font-weight: 600;">Dear ${
+                            CustomerDetails.recordsets[0][0].CUSTOMER_NAME
+                          },</p>
+                          <p style="font-size: 14px;color: black;">Your order <b>( ${
+                            obj.ORDER_ORDER_NUMBER
+                          } )</b> is confirmed.</p>
+                          <p style="font-size: 14px;color: black;">Your order due date is <b>${SplitDate(
+                            obj.ORDER_DUE_DATE
+                          )}</b>. We'll text you when your order is ready. </p>
                           <p style="font-size: 14px;color: black;">If you have any question, contact us at <b>+91 938-000-0005</b> -Laundrexx</p>
                         </div>
                         </html>`,
@@ -2562,7 +2576,7 @@ const SplitDate = (OrderDate) => {
   const OrderDates = SplitT.split("-");
   const FinalDate = OrderDates[2] + "-" + OrderDates[1] + "-" + OrderDates[0];
   return FinalDate;
-}
+};
 
 module.exports = {
   GetDueDate: GetDueDate,
