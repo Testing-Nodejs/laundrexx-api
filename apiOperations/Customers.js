@@ -30,8 +30,9 @@ async function AddCustomer(obj) {
       .query(
         `select * from CUSTOMERS where CUSTOMER_OUTLET_FKID = '${obj.CUSTOMER_OUTLET_FKID}' and CUSTOMER_CONTACT_NUMBER = '${obj.CUSTOMER_CONTACT_NUMBER}'`
       );
-
     if (Exist.recordsets[0].length > 0) {
+      res = "0";
+    } else {
       var result = await pool
         .request()
         .input("CUSTOMER_OUTLET_FKID", obj.CUSTOMER_OUTLET_FKID)
@@ -47,8 +48,7 @@ async function AddCustomer(obj) {
         .query(
           `insert into CUSTOMERS(CUSTOMER_OUTLET_FKID, CUSTOMER_NAME,CUSTOMER_CONTACT_NUMBER,CUSTOMER_ALT_NUMBER,CUSTOMER_GST_TYPE,CUSTOMER_EMAIL,CUSTOMER_ADDRESS,CUSTOMER_GST_NUMBER,CUSTOMER_TYPE_FKID,CUSTOMER_HOW_HEAR_US,CUSTOMER_CREATED_DATE) values(@CUSTOMER_OUTLET_FKID, @CUSTOMER_NAME,@CUSTOMER_CONTACT_NUMBER,@CUSTOMER_ALT_NUMBER,@CUSTOMER_GST_TYPE,@CUSTOMER_EMAIL,@CUSTOMER_ADDRESS,@CUSTOMER_GST_NUMBER,@CUSTOMER_TYPE_FKID,@CUSTOMER_HOW_HEAR_US,getdate())`
         );
-
-      if (result.rowsAffected > 0) {
+      if (result.rowsAffected) {
         var MaxCust = await pool
           .request()
           .query(`select max(CUSTOMER_PKID) as CUSTOMER_PKID from CUSTOMERS`);
@@ -64,7 +64,6 @@ async function AddCustomer(obj) {
           .query(
             `insert into CUSTOMER_COUPON(CUSTOMER_COUPON_NAME, CUSTOMER_COUPON_CODE,CUSTOMER_COUPON_PERCENT_OR_PRICE,CUSTOMER_COUPON_DISCOUNT,CUSTOMER_COUPON_TYPE,CUSTOMER_COUPON_ACTIVE) values(@CUSTOMER_COUPON_NAME, @CUSTOMER_COUPON_CODE,@CUSTOMER_COUPON_PERCENT_OR_PRICE,@CUSTOMER_COUPON_DISCOUNT,@CUSTOMER_COUPON_TYPE,@CUSTOMER_COUPON_ACTIVE)`
           );
-
         if (MainCoupon.rowsAffected > 0) {
           var MaxCoupon = await pool
             .request()
@@ -91,8 +90,6 @@ async function AddCustomer(obj) {
       } else {
         res = false;
       }
-    } else {
-      res = 0;
     }
     return res;
   } catch (error) {
