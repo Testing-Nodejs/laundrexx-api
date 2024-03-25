@@ -321,6 +321,26 @@ async function GetAllCustomersForPlaceOrder(OutletID) {
   }
 }
 
+async function GetAllCustomersDetailsByOutlet(OutletID) {
+  try {
+    var arr = [];
+    let pool = await sql.connect(config);
+    let result = await pool
+      .request()
+      .input("Outlet", OutletID)
+      .input("Month", "")
+      .input("Year", "")
+      .input("FromDate", "")
+      .input("ToDate", "")
+      .input("Type", "ViewAllCustomersByOutlet")
+      .execute("ViewAllCustomers");
+
+    return result.recordsets[0];
+  } catch (error) {
+    console.log("GetAllCustomersDetailsByOutlet-->", error);
+  }
+}
+
 async function GetAllCustomersWithFilter(obj) {
   try {
     let pool = await sql.connect(config);
@@ -723,6 +743,7 @@ module.exports = {
   GetAllCustomersWithFilter: GetAllCustomersWithFilter,
   GetAllCustomersWithFilterByManager: GetAllCustomersWithFilterByManager,
   GetAllCustomersForPlaceOrder: GetAllCustomersForPlaceOrder,
+  GetAllCustomersDetailsByOutlet: GetAllCustomersDetailsByOutlet,
   GetAllCustomersForPickup: GetAllCustomersForPickup,
   GetCutomerDetailsByID: GetCutomerDetailsByID,
   GetAllCustomerCoupons: GetAllCustomerCoupons,

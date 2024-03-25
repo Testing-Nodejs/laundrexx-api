@@ -48,34 +48,501 @@ async function SampleMailTest() {
     //   if (error) throw new Error(error);
     //   console.log(response.body);
     // });
+    let pool = await sql.connect(config);
+    let InvoiceData = await pool
+      .request()
+      .input("Outlet", "")
+      .input("Month", "B6-0070-24")
+      .input("Year", "")
+      .input("FromDate", "")
+      .input("ToDate", "")
+      .input("Type", "OrderByNumber")
+      .execute("ViewOrders");
+
+    var InnerItemTable = await pool
+      .request()
+      .query(
+        "select ORDER_ITEMS.*,[ITEM_CATEGORY_NAME], [SUB_CATEGORY_NAME], [ITEMS_NAME],[ITEMS_DISPLAY_NAME],isnull([ADDITIONAL_SERVICE_NAME], 'None') as ADDITIONAL_SERVICE_NAME  from ORDER_ITEMS join [dbo].[ITEMS] on [ITEMS_PKID] = [ORDER_ITEM_ITEM_FKID] join [dbo].[ITEM_CATEGORY] on [ITEM_CATEGORY_PKID] = [ITEMS_CATEGORY_FKID] join [dbo].[SUB_CATEGORY] on [SUB_CATEGORY_PKID] = [ITEMS_SUB_CATEGORY_FKID] left join [dbo].[ADDITIONAL_SERVICE] on [ADDITIONAL_SERVICE_PKID] = [ORDER_ITEM_ADDITIONAL_REQUEST_FKID] where ORDER_ITEM_ORDER_FKID = '" +
+          InvoiceData.recordsets[0][0].ORDER_PKID +
+          "'"
+      );
+
+    let ItemTables = "";
+
+    let footerCount = 0;
+
+    console.log("InnerItemTable");
+    console.log(InnerItemTable);
+
+    if (
+      InvoiceData.recordsets[0][0].COUPONS_ITEM_BASED == 1 ||
+      InvoiceData.recordsets[0][0].COUPONS_ITEM_BASED == "1"
+    ) {
+      ItemTables = `<table width="525px" style="font-size: 9px;
+            border: 1px solid #dad8e5;
+            padding: 3px" cellspacing="0">
+            <thead>
+                <th style="text-align: left;border-bottom: 1px solid #dad8e5; padding: 3px">Sl No</th>
+                <th style="text-align: left;border-bottom: 1px solid #dad8e5; padding: 3px">Item</th>
+                <th style="text-align: left;border-bottom: 1px solid #dad8e5; padding: 3px">Rate</th>
+                <th style="text-align: left;border-bottom: 1px solid #dad8e5; padding: 3px">Additional Charge</th>
+                <th style="text-align: left; border-bottom: 1px solid #dad8e5; padding: 3px">Qty</th>
+                <th style="text-align: left; border-bottom: 1px solid #dad8e5; padding: 3px">Unit Count</th>
+                <th style="text-align: left;border-bottom: 1px solid #dad8e5; padding: 3px">Defects</th>
+                <th style="text-align: left;border-bottom: 1px solid #dad8e5; padding: 3px">Amount</th>
+                <th style="text-align: left;border-bottom: 1px solid #dad8e5; padding: 3px">Discount</th>
+                <th style="text-align: right;border-bottom: 1px solid #dad8e5; padding: 3px">Total Amount</th>
+            </thead>
+            <tbody>
+            ${InnerItemTable.recordsets[0].map((item, index) => {
+              footerCount = footerCount + parseInt(item.ORDER_ITEM_COUNT);
+              return `<tr>
+                      <td style=" padding: 3 ">${index + 1}</td>
+                      <td style=" padding: 3 ">${item.ITEMS_DISPLAY_NAME}</td>
+                      <td style=" padding: 3 ">₹${parseFloat(
+                        item.ORDER_ITEM_AMOUNT
+                      )}</td>
+                      <td style=" padding: 3 ">${
+                        item.ADDITIONAL_SERVICE_NAME
+                      }/₹${item.ORDER_ITEM_ADDITIONAL_REQUEST_AMOUNT}</td>
+                      <td style=" padding: 3 ">${item.ORDER_ITEM_QUANTITY}</td>
+                      <td style=" padding: 3 ">${item.ORDER_ITEM_COUNT}</td>
+                      <td style=" padding: 3 ">${
+                        item.ORDER_ITEM_DEFECT == "No Defects"
+                          ? "-"
+                          : item.ORDER_ITEM_DEFECT
+                      }</td>
+                      <td style=" padding: 3 ">₹${parseFloat(
+                        item.ORDER_ITEM_TOTAL_AMOUNT
+                      )}</td>
+                      <td style=" padding: 3 ">₹${parseFloat(
+                        item.ORDER_ITEM_DISCOUNT
+                      )}</td>
+                      <td style=" text-align: "right", padding: 3 }} >₹${parseFloat(
+                        item.ORDER_ITEM_FINAL_AMOUNT
+                      )}</td>
+                  </tr>`;
+            })}
+              <tr>
+                                            <th colSpan="5" style="text-align: right; border-top: 1px solid #dad8e5; padding: 3; border-Bottom: 1px solid #dad8e5">Total Unit Count&nbsp;&nbsp;</th>
+                                            <th style="text-align: left; border-top: 1px solid #dad8e5; padding: 3; border-bottom: 1px solid #dad8e5">${footerCount}</th>
+                                            <th colSpan="3" style="text-align: right; border-top: 1px solid #dad8e5; padding: 3; border-bottom: 1px solid #dad8e5">Subtotal&nbsp;&nbsp;</th>
+                                            <th style="text-align: right; border-top: "1px solid #dad8e5", padding: 3, borderBottom: "1px solid #dad8e5" ">₹${
+                                              InvoiceData.recordsets[0][0]
+                                                .ORDER_AMOUNT
+                                            }</th>
+                                        </tr>
+                                        ${
+                                          InvoiceData.recordsets[0][0]
+                                            .ORDER_DISCOUNT == 0 ||
+                                          InvoiceData.recordsets[0][0]
+                                            .ORDER_DISCOUNT == "0"
+                                            ? `<tr style="display: none;"></tr>`
+                                            : `<tr>
+                                                <th colSpan="9" style="text-align: left, padding: 2;">Discount</th>
+                                                <th style="text-align: right; padding: 2;">₹-${InvoiceData.recordsets[0][0].ORDER_DISCOUNT}</th>
+                                            </tr>`
+                                        }
+                                        ${
+                                          InvoiceData.recordsets[0][0]
+                                            .ORDER_TOTAL_SUR_CHARGE == 0 ||
+                                          InvoiceData.recordsets[0][0]
+                                            .ORDER_TOTAL_SUR_CHARGE == "0"
+                                            ? `<tr style="display: none;"></tr>`
+                                            : InvoiceData.recordsets[0][0]
+                                                .ORDER_TOTAL_SUR_CHARGE < 0
+                                            ? `<tr>
+                                                    <th colSpan="9" style="text-align: left; padding: 2;">
+                                                        Surcharge ${InvoiceData.recordsets[0][0].SERVICE_TYPE_SURCHARGE}%</th>
+                                                    <th style=" text-align: "right", padding: 2 ">₹${InvoiceData.recordsets[0][0].ORDER_TOTAL_SUR_CHARGE}</th>
+                                                </tr>`
+                                            : `<tr>
+                                                    <th colSpan="9" style="text-align: left; padding: 2;">
+                                                        Surcharge ${InvoiceData.recordsets[0][0].SERVICE_TYPE_SURCHARGE}% Extra</th>
+                                                    <th style="text-align: right; padding: 2">₹${InvoiceData.recordsets[0][0].ORDER_TOTAL_SUR_CHARGE}</th>
+                                                </tr>`
+                                        }
+                                        <tr>
+                                            <th colSpan="9" style="text-align: left; padding: 2">Taxable Value</th>
+                                            <th style="text-align: right; padding: 2;">₹${
+                                              InvoiceData.recordsets[0][0]
+                                                .ORDER_TOTAL_ORDER_AMOUNT
+                                            }</th>
+                                        </tr>
+                                        <tr>
+                                            <th colSpan="9" style="text-align: left; padding: 2;">CGST ${
+                                              InvoiceData.recordsets[0][0]
+                                                .SERVICE_CATEGORY_CGST
+                                            }%</th>
+                                            <th style="text-align: right; padding: 2;">₹${
+                                              InvoiceData.recordsets[0][0]
+                                                .ORDER_CGST
+                                            }</th>
+                                        </tr>
+                                        <tr>
+                                            <th colSpan="9" style="text-align: left; padding: 2;">SGST ${
+                                              InvoiceData.recordsets[0][0]
+                                                .SERVICE_CATEGORY_SGST
+                                            }%</th>
+                                            <th style="text-align: right; padding: 2;">₹${
+                                              InvoiceData.recordsets[0][0]
+                                                .ORDER_SGST
+                                            }</th>
+                                        </tr>
+                                        ${
+                                          parseInt(
+                                            InvoiceData.recordsets[0][0]
+                                              .ORDER_DELIVERY_CHARGE
+                                          ) == 0 ||
+                                          InvoiceData.recordsets[0][0]
+                                            .ORDER_DELIVERY_CHARGE == "" ||
+                                          InvoiceData.recordsets[0][0]
+                                            .ORDER_DELIVERY_CHARGE == null
+                                            ? `<tr style="display: none;"></tr>`
+                                            : `<tr>
+                                                <th colSpan="9" style="text-align: left; padding: 2;">Delivery Charge</th>
+                                                <th style="text-align: right; padding: 2;">₹${InvoiceData.recordsets[0][0].ORDER_DELIVERY_CHARGE}</th>
+                                            </tr>`
+                                        }
+                                        <tr>
+                                            <th colSpan="9" style="text-align: left; padding: 2;">Total Invoice Value</th>
+                                            <th style="text-align: right, padding: 2;">₹${
+                                              InvoiceData.recordsets[0][0]
+                                                .ORDER_TOTAL_INVOICE_VALUE
+                                            }</th>
+                                        </tr>
+                                        <tr>
+                                            <th colSpan="9" style="text-align: left; padding: 2;">Round Off</th>
+                                            <th style="text-align: right; padding: 2;">₹${
+                                              InvoiceData.recordsets[0][0]
+                                                .ORDER_ROUND_OFF_INVOICE
+                                            }</th>
+                                        </tr>
+            </tbody>
+        </table>
+        <table width="525px" style="font-size: 11px;background-color:#029fe2;
+            color: #fff;padding: 3px" cellspacing="0">
+            <tbody>
+                <tr>
+                    <th colspan="9" style="text-align: left;padding: 2px">Amount Payable</th>
+                    <th style="text-align: right;padding: 2px">₹${
+                      InvoiceData.recordsets[0][0].ORDER_GRAND_TOTAL_AMOUNT
+                    }</th>
+                </tr>
+            </tbody>
+        </table>`;
+    } else {
+      ItemTables = `<table width="525px" style="font-size: 9px;
+            border: 1px solid #dad8e5;
+            padding: 3px" cellspacing="0">
+            <thead>
+                <th style="text-align: left;border-bottom: 1px solid #dad8e5; padding: 3px">Sl No</th>
+                <th style="text-align: left;border-bottom: 1px solid #dad8e5; padding: 3px">Item</th>
+                <th style="text-align: left;border-bottom: 1px solid #dad8e5; padding: 3px">Rate</th>
+                <th style="text-align: left;border-bottom: 1px solid #dad8e5; padding: 3px">Additional Charge</th>
+                <th style="text-align: left; border-bottom: 1px solid #dad8e5; padding: 3px">Qty</th>
+                <th style="text-align: left; border-bottom: 1px solid #dad8e5; padding: 3px">Unit Count</th>
+                <th style="text-align: left;border-bottom: 1px solid #dad8e5; padding: 3px">Defects</th>
+                <th style="text-align: right;border-bottom: 1px solid #dad8e5; padding: 3px">Total Amount</th>
+            </thead>
+            <tbody>
+            ${InnerItemTable.recordsets[0].map((item, index) => {
+              footerCount = footerCount + parseInt(item.ORDER_ITEM_COUNT);
+              return `<tr>
+                      <td style=" padding: 3 ">${index + 1}</td>
+                      <td style=" padding: 3 ">${item.ITEMS_DISPLAY_NAME}</td>
+                      <td style=" padding: 3 ">₹${parseFloat(
+                        item.ORDER_ITEM_AMOUNT
+                      )}</td>
+                      <td style=" padding: 3 ">${
+                        item.ADDITIONAL_SERVICE_NAME
+                      }/₹${item.ORDER_ITEM_ADDITIONAL_REQUEST_AMOUNT}</td>
+                      <td style=" padding: 3 ">${item.ORDER_ITEM_QUANTITY}</td>
+                      <td style=" padding: 3 ">${item.ORDER_ITEM_COUNT}</td>
+                      <td style=" padding: 3 ">${
+                        item.ORDER_ITEM_DEFECT == "No Defects"
+                          ? "-"
+                          : item.ORDER_ITEM_DEFECT
+                      }</td>
+                      <td style=" text-align: "right", padding: 3 }} >₹${parseFloat(
+                        item.ORDER_ITEM_FINAL_AMOUNT
+                      )}</td>
+                  </tr>`;
+            })}
+              <tr>
+                                            <th colSpan="5" style="text-align: right; border-top: 1px solid #dad8e5; padding: 3; border-bottom: 1px solid #dad8e5;">Total Unit Count&nbsp;&nbsp;</th>
+                                            <th style="text-align: left; border-top: 1px solid #dad8e5; padding: 3; border-bottom: 1px solid #dad8e5;">${footerCount}</th>
+                                            <th style="text-align: right; border-top: 1px solid #dad8e5; padding: 3; border-bottom: 1px solid #dad8e5;">Subtotal&nbsp;&nbsp;</th>
+                                            <th style="text-align: right; border-top: 1px solid #dad8e5; padding: 3; border-bottom: 1px solid #dad8e5;">₹${
+                                              InvoiceData.recordsets[0][0]
+                                                .ORDER_AMOUNT
+                                            }</th>
+                                        </tr>
+                                        ${
+                                          InvoiceData.recordsets[0][0]
+                                            .ORDER_DISCOUNT == 0 ||
+                                          InvoiceData.recordsets[0][0]
+                                            .ORDER_DISCOUNT == "0"
+                                            ? `<tr style="display: none;"></tr>`
+                                            : `<tr>
+                                          <th colSpan="7" style="text-align: left; padding: 2;">Discount</th>
+                                          <th style="text-align: right; padding: 2;">₹-${InvoiceData.recordsets[0][0].ORDER_DISCOUNT}</th>
+                                      </tr>`
+                                        }
+                                        ${
+                                          InvoiceData.recordsets[0][0]
+                                            .ORDER_TOTAL_SUR_CHARGE == 0 ||
+                                          InvoiceData.recordsets[0][0]
+                                            .ORDER_TOTAL_SUR_CHARGE == "0"
+                                            ? `<tr style="display: none;"></tr>`
+                                            : InvoiceData.recordsets[0][0]
+                                                .ORDER_TOTAL_SUR_CHARGE < 0
+                                            ? `<tr>
+                                                <th colSpan="7" style="text-align: left; padding: 2;">
+                                                    Surcharge ${InvoiceData.recordsets[0][0].SERVICE_TYPE_SURCHARGE}%</th>
+                                                <th style="text-align: right; padding: 2;">₹${InvoiceData.recordsets[0][0].ORDER_TOTAL_SUR_CHARGE}</th>
+                                            </tr>`
+                                            : `<tr>
+                                                <th colSpan="7" style="text-align: left; padding: 2;">
+                                                    Surcharge ${InvoiceData.recordsets[0][0].SERVICE_TYPE_SURCHARGE}% Extra</th>
+                                                <th style="text-align: right; padding: 2;">₹${InvoiceData.recordsets[0][0].ORDER_TOTAL_SUR_CHARGE}</th>
+                                            </tr>`
+                                        }
+                                        <tr>
+                                            <th colSpan="7" style="text-align: left; padding: 2;">Taxable Value</th>
+                                            <th style="text-align: right; padding: 2;">₹${
+                                              InvoiceData.recordsets[0][0]
+                                                .ORDER_TOTAL_ORDER_AMOUNT
+                                            }</th>
+                                        </tr>
+                                        <tr>
+                                            <th colSpan="7" style="text-align: left; padding: 2;">CGST ${
+                                              InvoiceData.recordsets[0][0]
+                                                .SERVICE_CATEGORY_CGST
+                                            }%</th>
+                                            <th style="text-align: right; padding: 2;">₹${
+                                              InvoiceData.recordsets[0][0]
+                                                .ORDER_CGST
+                                            }</th>
+                                        </tr>
+                                        <tr>
+                                            <th colSpan="7" style="text-align: left; padding: 2;">SGST ${
+                                              InvoiceData.recordsets[0][0]
+                                                .SERVICE_CATEGORY_SGST
+                                            }%</th>
+                                            <th style="text-align: right; padding: 2;">₹${
+                                              InvoiceData.recordsets[0][0]
+                                                .ORDER_SGST
+                                            }</th>
+                                        </tr>
+                                        ${
+                                          parseInt(
+                                            InvoiceData.recordsets[0][0]
+                                              .ORDER_DELIVERY_CHARGE
+                                          ) == 0 ||
+                                          InvoiceData.recordsets[0][0]
+                                            .ORDER_DELIVERY_CHARGE == "" ||
+                                          InvoiceData.recordsets[0][0]
+                                            .ORDER_DELIVERY_CHARGE == null
+                                            ? `&nbsp;`
+                                            : `<tr>
+                                                <th colSpan="7" style="text-align: left; padding: 2;">Delivery Charge</th>
+                                                <th style="text-align: right; padding: 2;">₹${InvoiceData.recordsets[0][0].ORDER_DELIVERY_CHARGE}</th>
+                                            </tr>`
+                                        }
+                                        <tr>
+                                            <th colSpan="7" style="text-align: left; padding: 2;">Total Invoice Value</th>
+                                            <th style="text-align: right; padding: 2;">₹${
+                                              InvoiceData.recordsets[0][0]
+                                                .ORDER_TOTAL_INVOICE_VALUE
+                                            }</th>
+                                        </tr>
+                                        <tr>
+                                            <th colSpan="7" style="text-align: left; padding: 2;">Round Off</th>
+                                            <th style="text-align: right; padding: 2;">₹${
+                                              InvoiceData.recordsets[0][0]
+                                                .ORDER_ROUND_OFF_INVOICE
+                                            }</th>
+                                        </tr>
+            </tbody>
+        </table>
+        <table width="525px" style="font-size: 11px;background-color:#029fe2;
+            color: #fff;padding: 3px" cellspacing="0">
+            <tbody>
+                <tr>
+                    <th colspan="7" style="text-align: left;padding: 2px">Amount Payable</th>
+                    <th style="text-align: right;padding: 2px">₹${
+                      InvoiceData.recordsets[0][0].ORDER_GRAND_TOTAL_AMOUNT
+                    }</th>
+                </tr>
+            </tbody>
+        </table>`;
+    }
 
     var mailOptions = {
       from: "order-update@laundrexx.com",
+      // to: CustomerDetails.recordsets[0].CUSTOMER_EMAIL,
       to: "jafaraftab15011@gmail.com",
-      // cc: "",
-      attachments: [
-        {
-          // utf-8 string as an attachment
-          filename: "text1.pdf",
-          content: `<html><head>
-          <style>
-
-    </style></head>
-    <div style="font-family: Helvetica,Arial,sans-serif;min-width:1000px;overflow:auto;line-height:2"><div style="margin:50px auto;width:70%;padding:20px 0">
-                    <div style="border-bottom:1px solid #eee">
-                      <a href="https://laundrexx.com/" style="font-size:1.4em;color: #00466a;text-decoration:none;font-weight:600">Laundrexx Fabric Care India Pvt Ltd</a>
-                    </div>
-                    <p style="font-size: 16px;color: black;font-weight: 600;">Dear Customer,</p>
-                    <p style="font-size: 14px;color: black;">Your order <b>( D17-0002-24 )</b> is confirmed.</p>
-                    <p style="font-size: 14px;color: black;">Your order due date is <b>2024-02-29</b>. We'll text you when your order is ready. </p>
-                    <p style="font-size: 14px;color: black;">If you have any question, contact us at <b>+91 938-000-0005</b> -Laundrexx</p>
-                  </div>
-                  </html>`,
-          contentType: "application/pdf",
-        },
-      ],
       subject: "Order Confirmation!",
-      // html: ,
+      html: `<html><head></head>
+          <body><div><div style="margin-top:10%; text-align:center; margin-bottom: 5%;height: 100%; width: 190px">
+                      <div style="width: 190px; text-align: center">
+                                  <table width="525px" style="border-bottom:1px solid #dad8e5;border-top:1px solid #dad8e5">
+                                      <tbody>
+                                          <tr>
+                                              <td style="text-align: left; width: 60%;font-size: 11px">
+                                                  <img src="https://laundrexx-api.onrender.com/laundrexx.png" alt="logo1" style="width: 50%"/>
+                                                  <br /><br />
+                                                  <span ><b>Laundrexx Fabric Care India(P) Ltd.</b></span>
+                                                  <br />
+                                                  <span style="font-weight: normal;">GST IN: 33AABCL9659G1ZA</span>
+                                                  <br />
+                                                  <span style="color: #029fe2; "><b
+                                                  >PLACE OF SUPPLY - ${
+                                                    InvoiceData.recordsets[0][0]
+                                                      .STORE_NAME
+                                                  } (${
+        InvoiceData.recordsets[0][0].STORE_CODE
+      })</b></span>
+                                                  <br />
+                                                  <span style="font-weight: normal;">${
+                                                    InvoiceData.recordsets[0][0]
+                                                      .STORE_ADDRESS
+                                                  }</span>
+                                                  <br />
+                                                  <span style="font-weight: normal;">Phone: ${
+                                                    InvoiceData.recordsets[0][0]
+                                                      .STORE_PHONE
+                                                  }</span>
+                                                  <br />
+                                              </td>
+                                              <td class="col-md-6" style="text-align: right;width:40%;font-size: 9px">
+                                                  <span style="font-size: 12px">(Customer Copy)</span>
+                                                  <br />
+                                                  <img class="barcode" style="width: 90px" src="https://laundrexx-api.onrender.com/${
+                                                    InvoiceData.recordsets[0][0]
+                                                      .ORDER_QR
+                                                  }" />
+                                                  <br />
+                                                  <span ><b>Service Type: ${
+                                                    InvoiceData.recordsets[0][0]
+                                                      .SERVICE_CATEGORY_NAME
+                                                  } - ${
+        InvoiceData.recordsets[0][0].SERVICE_TYPE_NAME
+      }</b></span>
+                                                  <br />
+                                                  <span ><b>HSN/SAC: ${
+                                                    InvoiceData.recordsets[0][0]
+                                                      .SERVICE_CATEGORY_HSN
+                                                  } ${
+        InvoiceData.recordsets[0][0].SERVICE_CATEGORY_DESCRIPTION == null ||
+        InvoiceData.recordsets[0][0].SERVICE_CATEGORY_DESCRIPTION == "" ||
+        InvoiceData.recordsets[0][0].SERVICE_CATEGORY_DESCRIPTION == "-"
+          ? `<span></span>`
+          : InvoiceData.recordsets[0][0].SERVICE_CATEGORY_DESCRIPTION
+      }</b></span>
+                                                  <br />
+                                                  <span ><b>Attended By: ${
+                                                    InvoiceData.recordsets[0][0]
+                                                      .STORE_STAFF_NAME
+                                                  }</b></span>
+                                                  <br />
+                                              </td>
+                                          </tr>
+                                      </tbody>
+                                  </table>
+                                  <table width="525px">
+                                      <tbody>
+                                          <tr>
+                                              <td style="text-align: left; width: 60%; font-size: 11px">
+                                                  <span ><b>BILL TO</b></span>
+                                                  <br />
+                                                  <span style="font-weight: normal;">Customer Name: ${
+                                                    InvoiceData.recordsets[0][0]
+                                                      .CUSTOMER_NAME
+                                                  }</span>
+                                                  <br />
+                                                  <span style="font-weight: normal;">Customer Email: ${
+                                                    InvoiceData.recordsets[0][0]
+                                                      .CUSTOMER_EMAIL
+                                                  }</span>
+                                                  <br />
+                                                  <span style="font-weight: normal; ">Customer Phone: ${
+                                                    InvoiceData.recordsets[0][0]
+                                                      .CUSTOMER_CONTACT_NUMBER
+                                                  }</span>
+                                                  <br />
+                                              </td>
+                                              <td style="text-align: right;width: 40%;font-size: 11px">
+                                                  <span style="font-weight: normal;">Invoice Date: ${SplitDate(
+                                                    InvoiceData.recordsets[0][0]
+                                                      .ORDER_DATE
+                                                  )}</span>
+                                                  <br />
+                                                  <span style="font-size: 12px"><b>Invoice Number: ${
+                                                    InvoiceData.recordsets[0][0]
+                                                      .ORDER_ORDER_NUMBER
+                                                  }</b></span>
+                                                  <br />
+                                                  <span style="color: #019fe1"><b>Due Date: ${SplitDate(
+                                                    InvoiceData.recordsets[0][0]
+                                                      .ORDER_DUE_DATE
+                                                  )} (7:00 pm)</b></span>
+                                                  <br />
+                                              </td>
+                                          </tr>
+                                      </tbody>
+                                  </table>
+                                  <span style="font-size: 11px;float: left"><b>ORDER DETAILS</b></span>
+                                  <br />
+                                  ${ItemTables}
+                                  <table width="525px" style="font-size: 9px;border: 1px solid #dad8e5; padding: 3px" cellspacing="0">
+                                      <tbody>
+                                          <tr>
+                                              <th style="text-align: left;padding: 2px">
+                                                  <span><b>For Laundrexx Fabric Care India(P) Ltd</b></span>
+                                                  <br /><br />
+                                                  <img src="https://laundrexx-api.onrender.com/${
+                                                    InvoiceData.recordsets[0][0]
+                                                      .DIGITAL_SIGNATURE
+                                                  }" style="width: 70px;padding-left: 10px"/>
+                                                  <br /><br />
+                                                  <span style="font-weight: normal">System Generated Invoice</span>
+                                              </th>
+                                              <th style="text-align: right;padding: 2px">
+                                                  <span><b>I hereby agree to the terms and conditions</b></span>
+                                                  <br /><br /><br /><br /><br />
+                                                  <span style="font-weight: normal">Customer Signature</span>
+                                              </th>
+                                          </tr>
+                                      </tbody>
+                                  </table>
+                                  <table width="525px" style="padding: 3px" cellspacing="0">
+                                      <tbody>
+                                          <tr>
+                                              <td style="text-align: left">
+                                                  <span style="font-size: 10px;">Note: Laundrexx will not assume responsibility for any color run, damage, or tears occurring on delicate or weak items during processing of the garment.</span>
+                                                  <br />
+                                                  <span style="font-size: 8px; color: #029fe2;"><b>For other questions or feedback contact us at: customercare@laundrexx.com or +919380000005</b></span>
+                                              </td>
+                                          </tr>
+                                      </tbody>
+                                  </table>
+              
+                                  <table width="525px" style="padding: 3px;margin-top: 10px;background-color: #ffc500" cellspacing="0">
+                                      <tbody>
+                                          <tr>
+                                              <td style="text-align: center">
+                                                  <span style="font-size: 8px"><b>I hereby give my consent to receive calls/SMS/email communication from Laundrexx Fabric Care India Pvt. Ltd. E & Ο.Ε.</b></span>
+                                              </td>
+                                          </tr>
+                                      </tbody>
+                                  </table>
+                      </div>
+                  </div>
+              </div>
+          </body>
+      </html>`,
     };
 
     transporter.sendMail(mailOptions, function (error, info) {
@@ -183,6 +650,8 @@ async function OutletPlaceOrder(obj) {
     var res = false;
 
     var OutletCode = "";
+
+    var OrderNummmber = obj.ORDER_ORDER_NUMBER;
 
     let pool = await sql.connect(config);
 
@@ -400,30 +869,501 @@ async function OutletPlaceOrder(obj) {
           console.log(response.body);
         });
 
+        // let pool = await sql.connect(config);
+        let InvoiceData = await pool
+          .request()
+          .input("Outlet", "")
+          .input("Month", OrderNummmber)
+          .input("Year", "")
+          .input("FromDate", "")
+          .input("ToDate", "")
+          .input("Type", "OrderByNumber")
+          .execute("ViewOrders");
+
+        var InnerItemTable = await pool
+          .request()
+          .query(
+            "select ORDER_ITEMS.*,[ITEM_CATEGORY_NAME], [SUB_CATEGORY_NAME], [ITEMS_NAME],[ITEMS_DISPLAY_NAME],isnull([ADDITIONAL_SERVICE_NAME], 'None') as ADDITIONAL_SERVICE_NAME  from ORDER_ITEMS join [dbo].[ITEMS] on [ITEMS_PKID] = [ORDER_ITEM_ITEM_FKID] join [dbo].[ITEM_CATEGORY] on [ITEM_CATEGORY_PKID] = [ITEMS_CATEGORY_FKID] join [dbo].[SUB_CATEGORY] on [SUB_CATEGORY_PKID] = [ITEMS_SUB_CATEGORY_FKID] left join [dbo].[ADDITIONAL_SERVICE] on [ADDITIONAL_SERVICE_PKID] = [ORDER_ITEM_ADDITIONAL_REQUEST_FKID] where ORDER_ITEM_ORDER_FKID = '" +
+              InvoiceData.recordsets[0][0].ORDER_PKID +
+              "'"
+          );
+
+        let ItemTables = "";
+
+        let footerCount = 0;
+
+        console.log("InnerItemTable");
+        console.log(InnerItemTable);
+
+        if (
+          InvoiceData.recordsets[0][0].COUPONS_ITEM_BASED == 1 ||
+          InvoiceData.recordsets[0][0].COUPONS_ITEM_BASED == "1"
+        ) {
+          ItemTables = `<table width="525px" style="font-size: 9px;
+            border: 1px solid #dad8e5;
+            padding: 3px" cellspacing="0">
+            <thead>
+                <th style="text-align: left;border-bottom: 1px solid #dad8e5; padding: 3px">Sl No</th>
+                <th style="text-align: left;border-bottom: 1px solid #dad8e5; padding: 3px">Item</th>
+                <th style="text-align: left;border-bottom: 1px solid #dad8e5; padding: 3px">Rate</th>
+                <th style="text-align: left;border-bottom: 1px solid #dad8e5; padding: 3px">Additional Charge</th>
+                <th style="text-align: left; border-bottom: 1px solid #dad8e5; padding: 3px">Qty</th>
+                <th style="text-align: left; border-bottom: 1px solid #dad8e5; padding: 3px">Unit Count</th>
+                <th style="text-align: left;border-bottom: 1px solid #dad8e5; padding: 3px">Defects</th>
+                <th style="text-align: left;border-bottom: 1px solid #dad8e5; padding: 3px">Amount</th>
+                <th style="text-align: left;border-bottom: 1px solid #dad8e5; padding: 3px">Discount</th>
+                <th style="text-align: right;border-bottom: 1px solid #dad8e5; padding: 3px">Total Amount</th>
+            </thead>
+            <tbody>
+            ${InnerItemTable.recordsets[0].map((item, index) => {
+              footerCount = footerCount + parseInt(item.ORDER_ITEM_COUNT);
+              return `<tr>
+                      <td style=" padding: 3 ">${index + 1}</td>
+                      <td style=" padding: 3 ">${item.ITEMS_DISPLAY_NAME}</td>
+                      <td style=" padding: 3 ">₹${parseFloat(
+                        item.ORDER_ITEM_AMOUNT
+                      )}</td>
+                      <td style=" padding: 3 ">${
+                        item.ADDITIONAL_SERVICE_NAME
+                      }/₹${item.ORDER_ITEM_ADDITIONAL_REQUEST_AMOUNT}</td>
+                      <td style=" padding: 3 ">${item.ORDER_ITEM_QUANTITY}</td>
+                      <td style=" padding: 3 ">${item.ORDER_ITEM_COUNT}</td>
+                      <td style=" padding: 3 ">${
+                        item.ORDER_ITEM_DEFECT == "No Defects"
+                          ? "-"
+                          : item.ORDER_ITEM_DEFECT
+                      }</td>
+                      <td style=" padding: 3 ">₹${parseFloat(
+                        item.ORDER_ITEM_TOTAL_AMOUNT
+                      )}</td>
+                      <td style=" padding: 3 ">₹${parseFloat(
+                        item.ORDER_ITEM_DISCOUNT
+                      )}</td>
+                      <td style=" text-align: "right", padding: 3 }} >₹${parseFloat(
+                        item.ORDER_ITEM_FINAL_AMOUNT
+                      )}</td>
+                  </tr>`;
+            })}
+              <tr>
+                                            <th colSpan="5" style="text-align: right; border-top: 1px solid #dad8e5; padding: 3; border-Bottom: 1px solid #dad8e5">Total Unit Count&nbsp;&nbsp;</th>
+                                            <th style="text-align: left; border-top: 1px solid #dad8e5; padding: 3; border-bottom: 1px solid #dad8e5">${footerCount}</th>
+                                            <th colSpan="3" style="text-align: right; border-top: 1px solid #dad8e5; padding: 3; border-bottom: 1px solid #dad8e5">Subtotal&nbsp;&nbsp;</th>
+                                            <th style="text-align: right; border-top: "1px solid #dad8e5", padding: 3, borderBottom: "1px solid #dad8e5" ">₹${
+                                              InvoiceData.recordsets[0][0]
+                                                .ORDER_AMOUNT
+                                            }</th>
+                                        </tr>
+                                        ${
+                                          InvoiceData.recordsets[0][0]
+                                            .ORDER_DISCOUNT == 0 ||
+                                          InvoiceData.recordsets[0][0]
+                                            .ORDER_DISCOUNT == "0"
+                                            ? `<tr style="display: none;"></tr>`
+                                            : `<tr>
+                                                <th colSpan="9" style="text-align: left, padding: 2;">Discount</th>
+                                                <th style="text-align: right; padding: 2;">₹-${InvoiceData.recordsets[0][0].ORDER_DISCOUNT}</th>
+                                            </tr>`
+                                        }
+                                        ${
+                                          InvoiceData.recordsets[0][0]
+                                            .ORDER_TOTAL_SUR_CHARGE == 0 ||
+                                          InvoiceData.recordsets[0][0]
+                                            .ORDER_TOTAL_SUR_CHARGE == "0"
+                                            ? `<tr style="display: none;"></tr>`
+                                            : InvoiceData.recordsets[0][0]
+                                                .ORDER_TOTAL_SUR_CHARGE < 0
+                                            ? `<tr>
+                                                    <th colSpan="9" style="text-align: left; padding: 2;">
+                                                        Surcharge ${InvoiceData.recordsets[0][0].SERVICE_TYPE_SURCHARGE}%</th>
+                                                    <th style=" text-align: "right", padding: 2 ">₹${InvoiceData.recordsets[0][0].ORDER_TOTAL_SUR_CHARGE}</th>
+                                                </tr>`
+                                            : `<tr>
+                                                    <th colSpan="9" style="text-align: left; padding: 2;">
+                                                        Surcharge ${InvoiceData.recordsets[0][0].SERVICE_TYPE_SURCHARGE}% Extra</th>
+                                                    <th style="text-align: right; padding: 2">₹${InvoiceData.recordsets[0][0].ORDER_TOTAL_SUR_CHARGE}</th>
+                                                </tr>`
+                                        }
+                                        <tr>
+                                            <th colSpan="9" style="text-align: left; padding: 2">Taxable Value</th>
+                                            <th style="text-align: right; padding: 2;">₹${
+                                              InvoiceData.recordsets[0][0]
+                                                .ORDER_TOTAL_ORDER_AMOUNT
+                                            }</th>
+                                        </tr>
+                                        <tr>
+                                            <th colSpan="9" style="text-align: left; padding: 2;">CGST ${
+                                              InvoiceData.recordsets[0][0]
+                                                .SERVICE_CATEGORY_CGST
+                                            }%</th>
+                                            <th style="text-align: right; padding: 2;">₹${
+                                              InvoiceData.recordsets[0][0]
+                                                .ORDER_CGST
+                                            }</th>
+                                        </tr>
+                                        <tr>
+                                            <th colSpan="9" style="text-align: left; padding: 2;">SGST ${
+                                              InvoiceData.recordsets[0][0]
+                                                .SERVICE_CATEGORY_SGST
+                                            }%</th>
+                                            <th style="text-align: right; padding: 2;">₹${
+                                              InvoiceData.recordsets[0][0]
+                                                .ORDER_SGST
+                                            }</th>
+                                        </tr>
+                                        ${
+                                          parseInt(
+                                            InvoiceData.recordsets[0][0]
+                                              .ORDER_DELIVERY_CHARGE
+                                          ) == 0 ||
+                                          InvoiceData.recordsets[0][0]
+                                            .ORDER_DELIVERY_CHARGE == "" ||
+                                          InvoiceData.recordsets[0][0]
+                                            .ORDER_DELIVERY_CHARGE == null
+                                            ? `<tr style="display: none;"></tr>`
+                                            : `<tr>
+                                                <th colSpan="9" style="text-align: left; padding: 2;">Delivery Charge</th>
+                                                <th style="text-align: right; padding: 2;">₹${InvoiceData.recordsets[0][0].ORDER_DELIVERY_CHARGE}</th>
+                                            </tr>`
+                                        }
+                                        <tr>
+                                            <th colSpan="9" style="text-align: left; padding: 2;">Total Invoice Value</th>
+                                            <th style="text-align: right, padding: 2;">₹${
+                                              InvoiceData.recordsets[0][0]
+                                                .ORDER_TOTAL_INVOICE_VALUE
+                                            }</th>
+                                        </tr>
+                                        <tr>
+                                            <th colSpan="9" style="text-align: left; padding: 2;">Round Off</th>
+                                            <th style="text-align: right; padding: 2;">₹${
+                                              InvoiceData.recordsets[0][0]
+                                                .ORDER_ROUND_OFF_INVOICE
+                                            }</th>
+                                        </tr>
+            </tbody>
+        </table>
+        <table width="525px" style="font-size: 11px;background-color:#029fe2;
+            color: #fff;padding: 3px" cellspacing="0">
+            <tbody>
+                <tr>
+                    <th colspan="9" style="text-align: left;padding: 2px">Amount Payable</th>
+                    <th style="text-align: right;padding: 2px">₹${
+                      InvoiceData.recordsets[0][0].ORDER_GRAND_TOTAL_AMOUNT
+                    }</th>
+                </tr>
+            </tbody>
+        </table>`;
+        } else {
+          ItemTables = `<table width="525px" style="font-size: 9px;
+            border: 1px solid #dad8e5;
+            padding: 3px" cellspacing="0">
+            <thead>
+                <th style="text-align: left;border-bottom: 1px solid #dad8e5; padding: 3px">Sl No</th>
+                <th style="text-align: left;border-bottom: 1px solid #dad8e5; padding: 3px">Item</th>
+                <th style="text-align: left;border-bottom: 1px solid #dad8e5; padding: 3px">Rate</th>
+                <th style="text-align: left;border-bottom: 1px solid #dad8e5; padding: 3px">Additional Charge</th>
+                <th style="text-align: left; border-bottom: 1px solid #dad8e5; padding: 3px">Qty</th>
+                <th style="text-align: left; border-bottom: 1px solid #dad8e5; padding: 3px">Unit Count</th>
+                <th style="text-align: left;border-bottom: 1px solid #dad8e5; padding: 3px">Defects</th>
+                <th style="text-align: right;border-bottom: 1px solid #dad8e5; padding: 3px">Total Amount</th>
+            </thead>
+            <tbody>
+            ${InnerItemTable.recordsets[0].map((item, index) => {
+              footerCount = footerCount + parseInt(item.ORDER_ITEM_COUNT);
+              return `<tr>
+                      <td style=" padding: 3 ">${index + 1}</td>
+                      <td style=" padding: 3 ">${item.ITEMS_DISPLAY_NAME}</td>
+                      <td style=" padding: 3 ">₹${parseFloat(
+                        item.ORDER_ITEM_AMOUNT
+                      )}</td>
+                      <td style=" padding: 3 ">${
+                        item.ADDITIONAL_SERVICE_NAME
+                      }/₹${item.ORDER_ITEM_ADDITIONAL_REQUEST_AMOUNT}</td>
+                      <td style=" padding: 3 ">${item.ORDER_ITEM_QUANTITY}</td>
+                      <td style=" padding: 3 ">${item.ORDER_ITEM_COUNT}</td>
+                      <td style=" padding: 3 ">${
+                        item.ORDER_ITEM_DEFECT == "No Defects"
+                          ? "-"
+                          : item.ORDER_ITEM_DEFECT
+                      }</td>
+                      <td style=" text-align: "right", padding: 3 }} >₹${parseFloat(
+                        item.ORDER_ITEM_FINAL_AMOUNT
+                      )}</td>
+                  </tr>`;
+            })}
+              <tr>
+                                            <th colSpan="5" style="text-align: right; border-top: 1px solid #dad8e5; padding: 3; border-bottom: 1px solid #dad8e5;">Total Unit Count&nbsp;&nbsp;</th>
+                                            <th style="text-align: left; border-top: 1px solid #dad8e5; padding: 3; border-bottom: 1px solid #dad8e5;">${footerCount}</th>
+                                            <th style="text-align: right; border-top: 1px solid #dad8e5; padding: 3; border-bottom: 1px solid #dad8e5;">Subtotal&nbsp;&nbsp;</th>
+                                            <th style="text-align: right; border-top: 1px solid #dad8e5; padding: 3; border-bottom: 1px solid #dad8e5;">₹${
+                                              InvoiceData.recordsets[0][0]
+                                                .ORDER_AMOUNT
+                                            }</th>
+                                        </tr>
+                                        ${
+                                          InvoiceData.recordsets[0][0]
+                                            .ORDER_DISCOUNT == 0 ||
+                                          InvoiceData.recordsets[0][0]
+                                            .ORDER_DISCOUNT == "0"
+                                            ? `<tr style="display: none;"></tr>`
+                                            : `<tr>
+                                          <th colSpan="7" style="text-align: left; padding: 2;">Discount</th>
+                                          <th style="text-align: right; padding: 2;">₹-${InvoiceData.recordsets[0][0].ORDER_DISCOUNT}</th>
+                                      </tr>`
+                                        }
+                                        ${
+                                          InvoiceData.recordsets[0][0]
+                                            .ORDER_TOTAL_SUR_CHARGE == 0 ||
+                                          InvoiceData.recordsets[0][0]
+                                            .ORDER_TOTAL_SUR_CHARGE == "0"
+                                            ? `<tr style="display: none;"></tr>`
+                                            : InvoiceData.recordsets[0][0]
+                                                .ORDER_TOTAL_SUR_CHARGE < 0
+                                            ? `<tr>
+                                                <th colSpan="7" style="text-align: left; padding: 2;">
+                                                    Surcharge ${InvoiceData.recordsets[0][0].SERVICE_TYPE_SURCHARGE}%</th>
+                                                <th style="text-align: right; padding: 2;">₹${InvoiceData.recordsets[0][0].ORDER_TOTAL_SUR_CHARGE}</th>
+                                            </tr>`
+                                            : `<tr>
+                                                <th colSpan="7" style="text-align: left; padding: 2;">
+                                                    Surcharge ${InvoiceData.recordsets[0][0].SERVICE_TYPE_SURCHARGE}% Extra</th>
+                                                <th style="text-align: right; padding: 2;">₹${InvoiceData.recordsets[0][0].ORDER_TOTAL_SUR_CHARGE}</th>
+                                            </tr>`
+                                        }
+                                        <tr>
+                                            <th colSpan="7" style="text-align: left; padding: 2;">Taxable Value</th>
+                                            <th style="text-align: right; padding: 2;">₹${
+                                              InvoiceData.recordsets[0][0]
+                                                .ORDER_TOTAL_ORDER_AMOUNT
+                                            }</th>
+                                        </tr>
+                                        <tr>
+                                            <th colSpan="7" style="text-align: left; padding: 2;">CGST ${
+                                              InvoiceData.recordsets[0][0]
+                                                .SERVICE_CATEGORY_CGST
+                                            }%</th>
+                                            <th style="text-align: right; padding: 2;">₹${
+                                              InvoiceData.recordsets[0][0]
+                                                .ORDER_CGST
+                                            }</th>
+                                        </tr>
+                                        <tr>
+                                            <th colSpan="7" style="text-align: left; padding: 2;">SGST ${
+                                              InvoiceData.recordsets[0][0]
+                                                .SERVICE_CATEGORY_SGST
+                                            }%</th>
+                                            <th style="text-align: right; padding: 2;">₹${
+                                              InvoiceData.recordsets[0][0]
+                                                .ORDER_SGST
+                                            }</th>
+                                        </tr>
+                                        ${
+                                          parseInt(
+                                            InvoiceData.recordsets[0][0]
+                                              .ORDER_DELIVERY_CHARGE
+                                          ) == 0 ||
+                                          InvoiceData.recordsets[0][0]
+                                            .ORDER_DELIVERY_CHARGE == "" ||
+                                          InvoiceData.recordsets[0][0]
+                                            .ORDER_DELIVERY_CHARGE == null
+                                            ? `&nbsp;`
+                                            : `<tr>
+                                                <th colSpan="7" style="text-align: left; padding: 2;">Delivery Charge</th>
+                                                <th style="text-align: right; padding: 2;">₹${InvoiceData.recordsets[0][0].ORDER_DELIVERY_CHARGE}</th>
+                                            </tr>`
+                                        }
+                                        <tr>
+                                            <th colSpan="7" style="text-align: left; padding: 2;">Total Invoice Value</th>
+                                            <th style="text-align: right; padding: 2;">₹${
+                                              InvoiceData.recordsets[0][0]
+                                                .ORDER_TOTAL_INVOICE_VALUE
+                                            }</th>
+                                        </tr>
+                                        <tr>
+                                            <th colSpan="7" style="text-align: left; padding: 2;">Round Off</th>
+                                            <th style="text-align: right; padding: 2;">₹${
+                                              InvoiceData.recordsets[0][0]
+                                                .ORDER_ROUND_OFF_INVOICE
+                                            }</th>
+                                        </tr>
+            </tbody>
+        </table>
+        <table width="525px" style="font-size: 11px;background-color:#029fe2;
+            color: #fff;padding: 3px" cellspacing="0">
+            <tbody>
+                <tr>
+                    <th colspan="7" style="text-align: left;padding: 2px">Amount Payable</th>
+                    <th style="text-align: right;padding: 2px">₹${
+                      InvoiceData.recordsets[0][0].ORDER_GRAND_TOTAL_AMOUNT
+                    }</th>
+                </tr>
+            </tbody>
+        </table>`;
+        }
+
         var mailOptions = {
           from: "order-update@laundrexx.com",
-          to: CustomerDetails.recordsets[0][0].CUSTOMER_EMAIL,
+          to: CustomerDetails.recordsets[0].CUSTOMER_EMAIL,
+          // to: "jafaraftab15011@gmail.com",
           subject: "Order Confirmation!",
-          html: `<html><head>
-                <style>
-         
-          </style></head>
-          <div style="font-family: Helvetica,Arial,sans-serif;min-width:1000px;overflow:auto;line-height:2"><div style="margin:50px auto;width:70%;padding:20px 0">
-                          <div style="border-bottom:1px solid #eee">
-                            <a href="https://laundrexx.com/" style="font-size:1.4em;color: #00466a;text-decoration:none;font-weight:600">Laundrexx Fabric Care India Pvt Ltd</a>
-                          </div>
-                          <p style="font-size: 16px;color: black;font-weight: 600;">Dear ${
-                            CustomerDetails.recordsets[0][0].CUSTOMER_NAME
-                          },</p>
-                          <p style="font-size: 14px;color: black;">Your order <b>( ${
-                            obj.ORDER_ORDER_NUMBER
-                          } )</b> is confirmed.</p>
-                          <p style="font-size: 14px;color: black;">Your order due date is <b>${SplitDate(
-                            obj.ORDER_DUE_DATE
-                          )}</b>. We'll text you when your order is ready. </p>
-                          <p style="font-size: 14px;color: black;">If you have any question, contact us at <b>+91 938-000-0005</b> -Laundrexx</p>
-                        </div>
-                        </html>`,
+          html: `<html><head></head>
+          <body><div><div style="margin-top:10%; text-align:center; margin-bottom: 5%;height: 100%; width: 190px">
+                      <div style="width: 190px; text-align: center">
+                                  <table width="525px" style="border-bottom:1px solid #dad8e5;border-top:1px solid #dad8e5">
+                                      <tbody>
+                                          <tr>
+                                              <td style="text-align: left; width: 60%;font-size: 11px">
+                                                  <img src="https://laundrexx-api.onrender.com/laundrexx.png" alt="logo1" style="width: 50%"/>
+                                                  <br /><br />
+                                                  <span ><b>Laundrexx Fabric Care India(P) Ltd.</b></span>
+                                                  <br />
+                                                  <span style="font-weight: normal;">GST IN: 33AABCL9659G1ZA</span>
+                                                  <br />
+                                                  <span style="color: #029fe2; "><b
+                                                  >PLACE OF SUPPLY - ${
+                                                    InvoiceData.recordsets[0][0]
+                                                      .STORE_NAME
+                                                  } (${
+            InvoiceData.recordsets[0][0].STORE_CODE
+          })</b></span>
+                                                  <br />
+                                                  <span style="font-weight: normal;">${
+                                                    InvoiceData.recordsets[0][0]
+                                                      .STORE_ADDRESS
+                                                  }</span>
+                                                  <br />
+                                                  <span style="font-weight: normal;">Phone: ${
+                                                    InvoiceData.recordsets[0][0]
+                                                      .STORE_PHONE
+                                                  }</span>
+                                                  <br />
+                                              </td>
+                                              <td class="col-md-6" style="text-align: right;width:40%;font-size: 9px">
+                                                  <span style="font-size: 12px">(Customer Copy)</span>
+                                                  <br />
+                                                  <img class="barcode" style="width: 90px" src="https://laundrexx-api.onrender.com/${
+                                                    InvoiceData.recordsets[0][0]
+                                                      .ORDER_QR
+                                                  }" />
+                                                  <br />
+                                                  <span ><b>Service Type: ${
+                                                    InvoiceData.recordsets[0][0]
+                                                      .SERVICE_CATEGORY_NAME
+                                                  } - ${
+            InvoiceData.recordsets[0][0].SERVICE_TYPE_NAME
+          }</b></span>
+                                                  <br />
+                                                  <span ><b>HSN/SAC: ${
+                                                    InvoiceData.recordsets[0][0]
+                                                      .SERVICE_CATEGORY_HSN
+                                                  } ${
+            InvoiceData.recordsets[0][0].SERVICE_CATEGORY_DESCRIPTION == null ||
+            InvoiceData.recordsets[0][0].SERVICE_CATEGORY_DESCRIPTION == "" ||
+            InvoiceData.recordsets[0][0].SERVICE_CATEGORY_DESCRIPTION == "-"
+              ? `<span></span>`
+              : InvoiceData.recordsets[0][0].SERVICE_CATEGORY_DESCRIPTION
+          }</b></span>
+                                                  <br />
+                                                  <span ><b>Attended By: ${
+                                                    InvoiceData.recordsets[0][0]
+                                                      .STORE_STAFF_NAME
+                                                  }</b></span>
+                                                  <br />
+                                              </td>
+                                          </tr>
+                                      </tbody>
+                                  </table>
+                                  <table width="525px">
+                                      <tbody>
+                                          <tr>
+                                              <td style="text-align: left; width: 60%; font-size: 11px">
+                                                  <span ><b>BILL TO</b></span>
+                                                  <br />
+                                                  <span style="font-weight: normal;">Customer Name: ${
+                                                    InvoiceData.recordsets[0][0]
+                                                      .CUSTOMER_NAME
+                                                  }</span>
+                                                  <br />
+                                                  <span style="font-weight: normal;">Customer Email: ${
+                                                    InvoiceData.recordsets[0][0]
+                                                      .CUSTOMER_EMAIL
+                                                  }</span>
+                                                  <br />
+                                                  <span style="font-weight: normal; ">Customer Phone: ${
+                                                    InvoiceData.recordsets[0][0]
+                                                      .CUSTOMER_CONTACT_NUMBER
+                                                  }</span>
+                                                  <br />
+                                              </td>
+                                              <td style="text-align: right;width: 40%;font-size: 11px">
+                                                  <span style="font-weight: normal;">Invoice Date: ${SplitDate(
+                                                    InvoiceData.recordsets[0][0]
+                                                      .ORDER_DATE
+                                                  )}</span>
+                                                  <br />
+                                                  <span style="font-size: 12px"><b>Invoice Number: ${
+                                                    InvoiceData.recordsets[0][0]
+                                                      .ORDER_ORDER_NUMBER
+                                                  }</b></span>
+                                                  <br />
+                                                  <span style="color: #019fe1"><b>Due Date: ${SplitDate(
+                                                    InvoiceData.recordsets[0][0]
+                                                      .ORDER_DUE_DATE
+                                                  )} (7:00 pm)</b></span>
+                                                  <br />
+                                              </td>
+                                          </tr>
+                                      </tbody>
+                                  </table>
+                                  <span style="font-size: 11px;float: left"><b>ORDER DETAILS</b></span>
+                                  <br />
+                                  ${ItemTables}
+                                  <table width="525px" style="font-size: 9px;border: 1px solid #dad8e5; padding: 3px" cellspacing="0">
+                                      <tbody>
+                                          <tr>
+                                              <th style="text-align: left;padding: 2px">
+                                                  <span><b>For Laundrexx Fabric Care India(P) Ltd</b></span>
+                                                  <br /><br />
+                                                  <img src="https://laundrexx-api.onrender.com/${
+                                                    InvoiceData.recordsets[0][0]
+                                                      .DIGITAL_SIGNATURE
+                                                  }" style="width: 70px;padding-left: 10px"/>
+                                                  <br /><br />
+                                                  <span style="font-weight: normal">System Generated Invoice</span>
+                                              </th>
+                                              <th style="text-align: right;padding: 2px">
+                                                  <span><b>I hereby agree to the terms and conditions</b></span>
+                                                  <br /><br /><br /><br /><br />
+                                                  <span style="font-weight: normal">Customer Signature</span>
+                                              </th>
+                                          </tr>
+                                      </tbody>
+                                  </table>
+                                  <table width="525px" style="padding: 3px" cellspacing="0">
+                                      <tbody>
+                                          <tr>
+                                              <td style="text-align: left">
+                                                  <span style="font-size: 10px;">Note: Laundrexx will not assume responsibility for any color run, damage, or tears occurring on delicate or weak items during processing of the garment.</span>
+                                                  <br />
+                                                  <span style="font-size: 8px; color: #029fe2;"><b>For other questions or feedback contact us at: customercare@laundrexx.com or +919380000005</b></span>
+                                              </td>
+                                          </tr>
+                                      </tbody>
+                                  </table>
+              
+                                  <table width="525px" style="padding: 3px;margin-top: 10px;background-color: #ffc500" cellspacing="0">
+                                      <tbody>
+                                          <tr>
+                                              <td style="text-align: center">
+                                                  <span style="font-size: 8px"><b>I hereby give my consent to receive calls/SMS/email communication from Laundrexx Fabric Care India Pvt. Ltd. E & Ο.Ε.</b></span>
+                                              </td>
+                                          </tr>
+                                      </tbody>
+                                  </table>
+                      </div>
+                  </div>
+              </div>
+          </body>
+      </html>`,
         };
 
         transporter.sendMail(mailOptions, function (error, info) {
@@ -2570,12 +3510,15 @@ async function UpdateOrderBadDebits(obj) {
   }
 }
 
-const SplitDate = (OrderDate) => {
-  const MainDate = OrderDate.split("T");
-  const SplitT = MainDate[0];
-  const OrderDates = SplitT.split("-");
-  const FinalDate = OrderDates[2] + "-" + OrderDates[1] + "-" + OrderDates[0];
-  return FinalDate;
+const SplitDate = (OrderDatee) => {
+  var d = new Date(OrderDatee);
+  return `${
+    d.getUTCDay().toString().length === 1 ? `0${d.getUTCDay()}` : d.getUTCDay()
+  }-${
+    d.getUTCMonth().toString().length === 1
+      ? `0${d.getUTCMonth()}`
+      : d.getUTCMonth()
+  }-${d.getUTCFullYear()}`;
 };
 
 module.exports = {

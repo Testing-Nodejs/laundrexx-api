@@ -1368,6 +1368,14 @@ router.get("/CustomersByOutlet/:OutletID", async (req, res) => {
   );
 });
 
+router.get("/CustomersDetailsByOutlet/:OutletID", async (req, res) => {
+  await Customers.GetAllCustomersDetailsByOutlet(req.params.OutletID).then(
+    (data) => {
+      res.json(data);
+    }
+  );
+});
+
 router.get(
   "/ItemsForPlaceOrder/:ServiceCategoryID/:OutletID",
   async (req, res) => {
