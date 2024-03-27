@@ -30,7 +30,7 @@ async function GetTodayDC(OutletID) {
     var FooterTotal = await pool
       .request()
       .query(
-        "select sum(cast(ORDER_ITEMS as int)) As TotalQuantity, sum(cast(ORDER_GRAND_TOTAL_AMOUNT as int)) as TotalAmount from ORDERS join CUSTOMERS on CUSTOMER_PKID = ORDER_CUSTOMER_FKID where ORDER_OUTLET_FKID = '" +
+        "select sum(cast(ORDER_ITEMS as int)) As TotalQuantity, sum(cast(ORDER_FINAL_ORDER_AMOUNT as int)) as TotalAmount from ORDERS join CUSTOMERS on CUSTOMER_PKID = ORDER_CUSTOMER_FKID where ORDER_OUTLET_FKID = '" +
         OutletID +
         "' and ORDER_DATE = (select cast(getdate() as date))"
       );

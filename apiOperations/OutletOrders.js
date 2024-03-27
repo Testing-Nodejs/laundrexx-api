@@ -2531,7 +2531,7 @@ async function GetAllDeliveredOrders(OrderID) {
       .input("Year", "")
       .input("FromDate", "")
       .input("ToDate", "")
-      .input("Type", "Delivered")
+      .input("Type", "DeliveredOutlet")
       .execute("ViewOrders");
 
     return result.recordsets[0];

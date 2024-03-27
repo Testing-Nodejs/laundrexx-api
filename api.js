@@ -1936,6 +1936,24 @@ router.get("/GetDCFromFactory/:OutletID", async (req, res) => {
   });
 });
 
+router.get("/GetConfirmedDCFromFactory/:OutletID", async (req, res) => {
+  await OutletIntake.GetConfirmedDCFromFactory(req.params.OutletID).then(
+    (data) => {
+      res.json(data);
+    }
+  );
+});
+
+router.route("/GetConfirmedDCFromFactoryWithFilter").post(async (req, res) => {
+  let obj = {
+    ...req.body,
+  };
+
+  await OutletIntake.GetConfirmedDCFromFactoryWithFilter(obj).then((data) => {
+    res.status(201).json(data);
+  });
+});
+
 router.get(
   "/ViewOutletDCForIntakeWithoutFactory/:OutletID",
   async (req, res) => {
@@ -1979,9 +1997,13 @@ router.route("/GetDCFromFactoryWithFilter").post(async (req, res) => {
   });
 });
 
-router.get("/OutletConfirmIntake/:DcPkid", async (req, res) => {
-  await OutletIntake.OutletConfirmIntake(req.params.DcPkid).then((data) => {
-    res.json(data);
+router.route("/OutletConfirmIntake").post(async (req, res) => {
+  let obj = {
+    ...req.body,
+  };
+
+  await OutletIntake.OutletConfirmIntake(obj).then((data) => {
+    res.status(201).json(data);
   });
 });
 
@@ -2319,6 +2341,16 @@ router.get("/FactoryConfirmInTake/:DCID", async (req, res) => {
   });
 });
 
+router.route("/FactoryConfirmInTakeBulk").post(async (req, res) => {
+  let obj = {
+    ...req.body,
+  };
+
+  await FactoryModule.FactoryConfirmInTakeBulk(obj).then((data) => {
+    res.status(201).json(data);
+  });
+});
+
 router.get("/ViewConfirmedOutletIntake/:FactoryID", async (req, res) => {
   await FactoryModule.ViewConfirmedOutletIntake(req.params.FactoryID).then(
     (data) => {
@@ -2388,6 +2420,16 @@ router.get("/FactoryConfirmInTakeFromFactory/:DCID", async (req, res) => {
       res.json(data);
     }
   );
+});
+
+router.route("/FactoryConfirmInTakeFromFactoryBulk").post(async (req, res) => {
+  let obj = {
+    ...req.body,
+  };
+
+  await FactoryModule.FactoryConfirmInTakeFromFactoryBulk(obj).then((data) => {
+    res.status(201).json(data);
+  });
 });
 
 router.get("/ViewConfirmedFactoryIntake/:FactoryID", async (req, res) => {
